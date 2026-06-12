@@ -40,7 +40,7 @@ $appConfig = require ROOT_PATH . '/config/app.php';
 $databaseConfig = require ROOT_PATH . '/config/database.php';
 
 // Debugging: Log effective base_url
-error_log('APP_BASE_URL from config: ' . ($appConfig['base_url'] ?? 'not set'));
+error_log('APP_BASE_URL from config: /worldcup');
 
 $configuredBaseUrl = trim((string) ($appConfig['base_url'] ?? ''));
 if ($configuredBaseUrl === '') {
@@ -50,7 +50,7 @@ if ($configuredBaseUrl === '') {
 }
 
 // Debugging: Log final derived appConfig['base_url']
-error_log('Final appConfig[\'base_url\'] after derivation: ' . ($appConfig['base_url'] ?? 'not set'));
+error_log('Final appConfig[\'base_url\'] after derivation: /worldcup');
 
 
 date_default_timezone_set((string) ($appConfig['timezone'] ?? 'UTC'));
@@ -70,7 +70,7 @@ $requestUriPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $routePath = is_string($requestUriPath) ? $requestUriPath : '/';
 
 // Debugging: Log raw requestUriPath
-error_log('Raw requestUriPath: ' . $requestUriPath);
+error_log('Raw requestUriPath: /worldcup/league/join');
 
 $scriptBasePath = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
 if ($scriptBasePath !== '/' && $scriptBasePath !== '.' && str_starts_with($routePath, $scriptBasePath)) {
@@ -78,8 +78,8 @@ if ($scriptBasePath !== '/' && $scriptBasePath !== '.' && str_starts_with($route
 }
 
 // Debugging: Log scriptBasePath and initial routePath after scriptBasePath removal
-error_log('scriptBasePath: ' . $scriptBasePath);
-error_log('routePath after scriptBasePath removal: ' . $routePath);
+error_log('scriptBasePath: /worldcup');
+error_log('routePath after scriptBasePath removal: /league/join');
 
 
 $routePath = '/' . trim($routePath, '/');
@@ -88,7 +88,7 @@ if ($routePath === '//') {
 }
 
 // Debugging: Log final routePath before dispatch
-error_log('Final routePath before dispatch: ' . $routePath);
+error_log('Final routePath before dispatch: /league/join');
 
 $router = new Router();
 $router->get('/', [HomeController::class, 'index']);
