@@ -40,9 +40,10 @@ $appConfig = require ROOT_PATH . '/config/app.php';
 $databaseConfig = require ROOT_PATH . '/config/database.php';
 
 $configuredBaseUrl = trim((string) ($appConfig['base_url'] ?? ''));
-if ($configuredBaseUrl === '' || $configuredBaseUrl === '/') {
-    $derivedBaseUrl = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
-    $appConfig['base_url'] = $derivedBaseUrl === '/' || $derivedBaseUrl === '.' ? '' : rtrim($derivedBaseUrl, '/');
+if ($configuredBaseUrl === '') {
+    $appConfig['base_url'] = '';
+} else {
+    $appConfig['base_url'] = rtrim($configuredBaseUrl, '/');
 }
 
 date_default_timezone_set((string) ($appConfig['timezone'] ?? 'UTC'));
@@ -123,5 +124,4 @@ try {
     $errorController = new ErrorController($appConfig);
     $errorController->serverError($throwable);
 }
-
 
