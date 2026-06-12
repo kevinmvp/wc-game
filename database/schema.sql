@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS league_participants (
     name VARCHAR(120) NOT NULL,
     team_name VARCHAR(120) NOT NULL,
     mobile VARCHAR(20) NOT NULL,
+    password TEXT NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
@@ -128,3 +129,4 @@ INSERT INTO league_matches (stage, group_name, match_date, local_time, home_team
 ('Group Stage', 'Group L', '2026-06-23', '19:00:00', 'Panama', 'Croatia', 'BMO Field', 'Toronto', NULL, NULL, NOW(), NOW()),
 ('Group Stage', 'Group L', '2026-06-27', '16:00:00', 'Panama', 'England', 'MetLife Stadium', 'New York/New Jersey', NULL, NULL, NOW(), NOW()),
 ('Group Stage', 'Group L', '2026-06-27', '16:00:00', 'Croatia', 'Ghana', 'Lincoln Financial Field', 'Philadelphia', NULL, NULL, NOW(), NOW());
+

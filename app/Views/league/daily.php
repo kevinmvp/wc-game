@@ -24,6 +24,8 @@ $truncateTeamName = static function (string $team): string {
 
     return strlen($team) > 20 ? substr($team, 0, 20) . '...' : $team;
 };
+
+$currentTime = new DateTimeImmutable('now', new DateTimeZone($appConfig['timezone']));
 ?>
 <section class="panel">
     <h1>Daily Games</h1>
@@ -55,7 +57,16 @@ $truncateTeamName = static function (string $team): string {
     <?php elseif ($viewMode === 'grid'): ?>
         <div class="card-grid">
             <?php foreach ($matches as $match): ?>
-                <?php $currentVote = $votes[(int) $match['id']] ?? ''; ?>
+                <?php
+                $currentVote = $votes[(int) $match['id']] ?? '';
+                $fixtureDateTime = DateTimeImmutable::createFromFormat(
+                    'Y-m-d H:i:s',
+                    (string) $match['fixture_date'] . ' ' . (string) $match['local_time'] . ':00',
+                    new DateTimeZone($appConfig['timezone'])
+                );
+                $isMatchPast = ($fixtureDateTime !== false && $fixtureDateTime < $currentTime);
+                $isDisabled = $isMatchPast ? 'disabled' : '';
+                ?>
                 <article class="fixture-card">
                     <p><strong><?= htmlspecialchars((string) ($match['group_name'] ?: $match['stage']), ENT_QUOTES, 'UTF-8'); ?></strong></p>
                     <h3>
@@ -79,23 +90,23 @@ $truncateTeamName = static function (string $team): string {
                     <form method="post" action="<?= htmlspecialchars($url('league/vote/' . (string) ((int) $match['id'])), ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
 
-                        <select class="form-select mb-2" name="prediction" required>
-                            <option value="">Choose</option>
-                            <?php foreach ($allowedPredictions as $prediction): ?>
-                                <?php
-                                $predictionLabel = match ($prediction) {
-                                    'home' => FlagHelper::getFlag((string) $match['home_team']) . ' ' . $truncateTeamName((string) $match['home_team']) . ' to win',
-                                    'away' => FlagHelper::getFlag((string) $match['away_team']) . ' ' . $truncateTeamName((string) $match['away_team']) . ' to win',
-                                    default => 'Draw',
-                                };
-                                ?>
-                                <option value="<?= htmlspecialchars($prediction, ENT_QUOTES, 'UTF-8'); ?>" <?= $prediction === $currentVote ? 'selected' : ''; ?>>
-                                    <?= htmlspecialchars($predictionLabel, ENT_QUOTES, 'UTF-8'); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <button class="btn btn-success btn-sm" type="submit">Save Vote</button>
-                    </form>
+                        <select class="form-select mb-2" name="prediction" required <?= $isDisabled; ?>>
+                                <option value="">Choose</option>
+                                <?php foreach ($allowedPredictions as $prediction): ?>
+                                    <?php
+                                    $predictionLabel = match ($prediction) {
+                                        'home' => FlagHelper::getFlag((string) $match['home_team']) . ' ' . $truncateTeamName((string) $match['home_team']) . ' to win',
+                                        'away' => FlagHelper::getFlag((string) $match['away_team']) . ' ' . $truncateTeamName((string) $match['away_team']) . ' to win',
+                                        default => 'Draw',
+                                    };
+                                    ?>
+                                    <option value="<?= htmlspecialchars($prediction, ENT_QUOTES, 'UTF-8'); ?>" <?= $prediction === $currentVote ? 'selected' : ''; ?>>
+                                        <?= htmlspecialchars($predictionLabel, ENT_QUOTES, 'UTF-8'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <button class="btn btn-success btn-sm" type="submit" <?= $isDisabled; ?>>Save Vote</button>
+                        </form>
                 </article>
             <?php endforeach; ?>
         </div>
@@ -112,7 +123,16 @@ $truncateTeamName = static function (string $team): string {
             </thead>
             <tbody>
             <?php foreach ($matches as $match): ?>
-                <?php $currentVote = $votes[(int) $match['id']] ?? ''; ?>
+                <?php
+                $currentVote = $votes[(int) $match['id']] ?? '';
+                $fixtureDateTime = DateTimeImmutable::createFromFormat(
+                    'Y-m-d H:i:s',
+                    (string) $match['fixture_date'] . ' ' . (string) $match['local_time'] . ':00',
+                    new DateTimeZone($appConfig['timezone'])
+                );
+                $isMatchPast = ($fixtureDateTime !== false && $fixtureDateTime < $currentTime);
+                $isDisabled = $isMatchPast ? 'disabled' : '';
+                ?>
                 <tr>
                     <td>
                         <div>
@@ -143,7 +163,7 @@ $truncateTeamName = static function (string $team): string {
                         <form method="post" action="<?= htmlspecialchars($url('league/vote/' . (string) ((int) $match['id'])), ENT_QUOTES, 'UTF-8'); ?>" class="inline-form">
                             <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
 
-                            <select class="form-select form-select-sm" name="prediction" required>
+                            <select class="form-select form-select-sm" name="prediction" required <?= $isDisabled; ?>>
                                 <option value="">Choose</option>
                                 <?php foreach ($allowedPredictions as $prediction): ?>
                                     <?php
@@ -158,7 +178,7 @@ $truncateTeamName = static function (string $team): string {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <button class="btn btn-success btn-sm" type="submit">Save Vote</button>
+                            <button class="btn btn-success btn-sm" type="submit" <?= $isDisabled; ?>>Save Vote</button>
                         </form>
                     </td>
                 </tr>
@@ -168,3 +188,4 @@ $truncateTeamName = static function (string $team): string {
         </div>
     <?php endif; ?>
 </section>
+
