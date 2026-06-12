@@ -11,7 +11,8 @@ return [
     'environment' => getenv('APP_ENV') ?: 'development',
     'debug' => filter_var(getenv('APP_DEBUG') ?: '1', FILTER_VALIDATE_BOOL),
     'timezone' => getenv('APP_TIMEZONE') ?: 'Asia/Singapore',
-    'base_url' => getenv('APP_BASE_URL') ?: '/',
+    'base_url' => getenv('APP_BASE_URL') ?: '',
     'league_admin_password' => getenv('LEAGUE_ADMIN_PASSWORD') ?: '',
 ];
+
 

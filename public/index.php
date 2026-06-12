@@ -40,19 +40,15 @@ $appConfig = require ROOT_PATH . '/config/app.php';
 $databaseConfig = require ROOT_PATH . '/config/database.php';
 
 // Debugging: Log effective base_url
-error_log('APP_BASE_URL from config: /worldcup');
-
+// error_log('APP_BASE_URL from config: ' . ($appConfig['base_url'] ?? 'not set')); // REMOVED FOR REVERT
 $configuredBaseUrl = trim((string) ($appConfig['base_url'] ?? ''));
-if ($configuredBaseUrl === '') {
-    $appConfig['base_url'] = '';
-} else {
-    $appConfig['base_url'] = rtrim($configuredBaseUrl, '/');
+if ($configuredBaseUrl === '' || $configuredBaseUrl === '/') {
+    $derivedBaseUrl = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
+    $appConfig['base_url'] = $derivedBaseUrl === '/' || $derivedBaseUrl === '.' ? '' : rtrim($derivedBaseUrl, '/');
 }
 
 // Debugging: Log final derived appConfig['base_url']
-error_log('Final appConfig[\'base_url\'] after derivation: /worldcup');
-
-
+// error_log('Final appConfig['base_url'] after derivation: ' . ($appConfig['base_url'] ?? 'not set')); // REMOVED FOR REVERT
 date_default_timezone_set((string) ($appConfig['timezone'] ?? 'UTC'));
 
 $environment = (string) ($appConfig['environment'] ?? 'production');
@@ -70,16 +66,15 @@ $requestUriPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $routePath = is_string($requestUriPath) ? $requestUriPath : '/';
 
 // Debugging: Log raw requestUriPath
-error_log('Raw requestUriPath: /worldcup/league/join');
-
+// error_log('Raw requestUriPath: ' . $requestUriPath); // REMOVED FOR REVERT
 $scriptBasePath = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
 if ($scriptBasePath !== '/' && $scriptBasePath !== '.' && str_starts_with($routePath, $scriptBasePath)) {
     $routePath = substr($routePath, strlen($scriptBasePath)) ?: '/';
 }
 
 // Debugging: Log scriptBasePath and initial routePath after scriptBasePath removal
-error_log('scriptBasePath: /worldcup');
-error_log('routePath after scriptBasePath removal: /league/join');
+// error_log('scriptBasePath: ' . $scriptBasePath); // REMOVED FOR REVERT
+// error_log('routePath after scriptBasePath removal: ' . $routePath); // REMOVED FOR REVERT
 
 
 $routePath = '/' . trim($routePath, '/');
@@ -88,7 +83,7 @@ if ($routePath === '//') {
 }
 
 // Debugging: Log final routePath before dispatch
-error_log('Final routePath before dispatch: /league/join');
+// error_log('Final routePath before dispatch: ' . $routePath); // REMOVED FOR REVERT
 
 $router = new Router();
 $router->get('/', [HomeController::class, 'index']);
@@ -142,4 +137,5 @@ try {
     $errorController = new ErrorController($appConfig);
     $errorController->serverError($throwable);
 }
+
 
