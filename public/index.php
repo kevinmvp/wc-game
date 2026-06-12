@@ -40,7 +40,7 @@ $appConfig = require ROOT_PATH . '/config/app.php';
 $databaseConfig = require ROOT_PATH . '/config/database.php';
 
 // Debugging: Log effective base_url
-// error_log('APP_BASE_URL from config: ' . ($appConfig['base_url'] ?? 'not set')); // REMOVED FOR REVERT
+error_log('APP_BASE_URL from config: ' . ($appConfig['base_url'] ?? 'not set'));
 $configuredBaseUrl = trim((string) ($appConfig['base_url'] ?? ''));
 if ($configuredBaseUrl === '' || $configuredBaseUrl === '/') {
     $derivedBaseUrl = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
@@ -48,7 +48,7 @@ if ($configuredBaseUrl === '' || $configuredBaseUrl === '/') {
 }
 
 // Debugging: Log final derived appConfig['base_url']
-// error_log('Final appConfig['base_url'] after derivation: ' . ($appConfig['base_url'] ?? 'not set')); // REMOVED FOR REVERT
+error_log('Final appConfig[\'base_url\'] after derivation: ' . ($appConfig['base_url'] ?? 'not set'));
 date_default_timezone_set((string) ($appConfig['timezone'] ?? 'UTC'));
 
 $environment = (string) ($appConfig['environment'] ?? 'production');
@@ -66,15 +66,15 @@ $requestUriPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $routePath = is_string($requestUriPath) ? $requestUriPath : '/';
 
 // Debugging: Log raw requestUriPath
-// error_log('Raw requestUriPath: ' . $requestUriPath); // REMOVED FOR REVERT
+error_log('Raw requestUriPath: ' . $requestUriPath);
 $scriptBasePath = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
 if ($scriptBasePath !== '/' && $scriptBasePath !== '.' && str_starts_with($routePath, $scriptBasePath)) {
     $routePath = substr($routePath, strlen($scriptBasePath)) ?: '/';
 }
 
 // Debugging: Log scriptBasePath and initial routePath after scriptBasePath removal
-// error_log('scriptBasePath: ' . $scriptBasePath); // REMOVED FOR REVERT
-// error_log('routePath after scriptBasePath removal: ' . $routePath); // REMOVED FOR REVERT
+error_log('scriptBasePath: ' . $scriptBasePath);
+error_log('routePath after scriptBasePath removal: ' . $routePath);
 
 
 $routePath = '/' . trim($routePath, '/');
@@ -83,7 +83,7 @@ if ($routePath === '//') {
 }
 
 // Debugging: Log final routePath before dispatch
-// error_log('Final routePath before dispatch: ' . $routePath); // REMOVED FOR REVERT
+error_log('Final routePath before dispatch: ' . $routePath);
 
 $router = new Router();
 $router->get('/', [HomeController::class, 'index']);
@@ -115,6 +115,13 @@ $router->get('/league/logout', [LeagueController::class, 'logoutParticipant']);
 
 $route = $router->dispatch($requestMethod, $routePath);
 
+// Debugging: Log if route was found
+    if ($route === null) {
+    error_log('Route not found for path: ' . $routePath);
+} else {
+    error_log('Route found for path: ' . $routePath . ' Handler: ' . $route['handler'][0] . '::' . $route['handler'][1]);
+    }
+
 try {
     if ($route === null) {
         $errorController = new ErrorController($appConfig);
@@ -137,5 +144,4 @@ try {
     $errorController = new ErrorController($appConfig);
     $errorController->serverError($throwable);
 }
-
 
