@@ -39,12 +39,19 @@ Environment::load(ROOT_PATH . '/.env');
 $appConfig = require ROOT_PATH . '/config/app.php';
 $databaseConfig = require ROOT_PATH . '/config/database.php';
 
+// Debugging: Log effective base_url
+error_log('APP_BASE_URL from config: ' . ($appConfig['base_url'] ?? 'not set'));
+
 $configuredBaseUrl = trim((string) ($appConfig['base_url'] ?? ''));
 if ($configuredBaseUrl === '') {
     $appConfig['base_url'] = '';
 } else {
     $appConfig['base_url'] = rtrim($configuredBaseUrl, '/');
 }
+
+// Debugging: Log final derived appConfig['base_url']
+error_log('Final appConfig[\'base_url\'] after derivation: ' . ($appConfig['base_url'] ?? 'not set'));
+
 
 date_default_timezone_set((string) ($appConfig['timezone'] ?? 'UTC'));
 
@@ -62,15 +69,26 @@ $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $requestUriPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $routePath = is_string($requestUriPath) ? $requestUriPath : '/';
 
+// Debugging: Log raw requestUriPath
+error_log('Raw requestUriPath: ' . $requestUriPath);
+
 $scriptBasePath = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
 if ($scriptBasePath !== '/' && $scriptBasePath !== '.' && str_starts_with($routePath, $scriptBasePath)) {
     $routePath = substr($routePath, strlen($scriptBasePath)) ?: '/';
 }
 
+// Debugging: Log scriptBasePath and initial routePath after scriptBasePath removal
+error_log('scriptBasePath: ' . $scriptBasePath);
+error_log('routePath after scriptBasePath removal: ' . $routePath);
+
+
 $routePath = '/' . trim($routePath, '/');
 if ($routePath === '//') {
     $routePath = '/';
 }
+
+// Debugging: Log final routePath before dispatch
+error_log('Final routePath before dispatch: ' . $routePath);
 
 $router = new Router();
 $router->get('/', [HomeController::class, 'index']);
