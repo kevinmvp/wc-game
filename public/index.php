@@ -44,6 +44,10 @@ error_log('APP_BASE_URL from config: ' . ($appConfig['base_url'] ?? 'not set'));
 $configuredBaseUrl = trim((string) ($appConfig['base_url'] ?? ''));
 if ($configuredBaseUrl === '' || $configuredBaseUrl === '/') {
     $derivedBaseUrl = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
+    // When root .htaccess rewrites to public/index.php, SCRIPT_NAME includes /public — strip it
+    if (basename($derivedBaseUrl) === 'public') {
+        $derivedBaseUrl = dirname($derivedBaseUrl);
+    }
     $appConfig['base_url'] = $derivedBaseUrl === '/' || $derivedBaseUrl === '.' ? '' : rtrim($derivedBaseUrl, '/');
 }
 
@@ -67,14 +71,14 @@ $routePath = is_string($requestUriPath) ? $requestUriPath : '/';
 
 // Debugging: Log raw requestUriPath
 error_log('Raw requestUriPath: ' . $requestUriPath);
-$scriptBasePath = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
-if ($scriptBasePath !== '/' && $scriptBasePath !== '.' && str_starts_with($routePath, $scriptBasePath)) {
-    $routePath = substr($routePath, strlen($scriptBasePath)) ?: '/';
+$baseUrl = rtrim((string) ($appConfig['base_url'] ?? ''), '/');
+if ($baseUrl !== '' && str_starts_with($routePath, $baseUrl)) {
+    $routePath = substr($routePath, strlen($baseUrl)) ?: '/';
 }
 
-// Debugging: Log scriptBasePath and initial routePath after scriptBasePath removal
-error_log('scriptBasePath: ' . $scriptBasePath);
-error_log('routePath after scriptBasePath removal: ' . $routePath);
+// Debugging: Log baseUrl and initial routePath after baseUrl removal
+error_log('baseUrl: ' . $baseUrl);
+error_log('routePath after baseUrl removal: ' . $routePath);
 
 
 $routePath = '/' . trim($routePath, '/');
