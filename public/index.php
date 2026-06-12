@@ -39,20 +39,6 @@ Environment::load(ROOT_PATH . '/.env');
 $appConfig = require ROOT_PATH . '/config/app.php';
 $databaseConfig = require ROOT_PATH . '/config/database.php';
 
-// Debugging: Log effective base_url
-error_log('APP_BASE_URL from config: ' . ($appConfig['base_url'] ?? 'not set'));
-$configuredBaseUrl = trim((string) ($appConfig['base_url'] ?? ''));
-if ($configuredBaseUrl === '' || $configuredBaseUrl === '/') {
-    $derivedBaseUrl = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
-    // When root .htaccess rewrites to public/index.php, SCRIPT_NAME includes /public — strip it
-    if (basename($derivedBaseUrl) === 'public') {
-        $derivedBaseUrl = dirname($derivedBaseUrl);
-    }
-    $appConfig['base_url'] = $derivedBaseUrl === '/' || $derivedBaseUrl === '.' ? '' : rtrim($derivedBaseUrl, '/');
-}
-
-// Debugging: Log final derived appConfig['base_url']
-error_log('Final appConfig[\'base_url\'] after derivation: ' . ($appConfig['base_url'] ?? 'not set'));
 date_default_timezone_set((string) ($appConfig['timezone'] ?? 'UTC'));
 
 $environment = (string) ($appConfig['environment'] ?? 'production');
@@ -66,19 +52,29 @@ match ($environment) {
 ini_set('display_errors', $debugMode ? '1' : '0');
 
 $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$requestUriPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-$routePath = is_string($requestUriPath) ? $requestUriPath : '/';
+$requestUriPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$routePath = $requestUriPath !== '' ? $requestUriPath : '/';
 
-// Debugging: Log raw requestUriPath
-error_log('Raw requestUriPath: ' . $requestUriPath);
+// Derive base URL dynamically if not set via APP_BASE_URL env var.
+// Walk up from SCRIPT_NAME's directory until we find the segment that is a
+// prefix of REQUEST_URI — works regardless of folder names or nesting depth.
+$configuredBaseUrl = trim((string) ($appConfig['base_url'] ?? ''));
+if ($configuredBaseUrl === '' || $configuredBaseUrl === '/') {
+    $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
+    $derivedBaseUrl = '';
+    for ($dir = $scriptDir; $dir !== '/' && $dir !== '.'; $dir = dirname($dir)) {
+        if (str_starts_with($routePath, $dir . '/') || $routePath === $dir) {
+            $derivedBaseUrl = $dir;
+            break;
+        }
+    }
+    $appConfig['base_url'] = $derivedBaseUrl;
+}
+
 $baseUrl = rtrim((string) ($appConfig['base_url'] ?? ''), '/');
 if ($baseUrl !== '' && str_starts_with($routePath, $baseUrl)) {
     $routePath = substr($routePath, strlen($baseUrl)) ?: '/';
 }
-
-// Debugging: Log baseUrl and initial routePath after baseUrl removal
-error_log('baseUrl: ' . $baseUrl);
-error_log('routePath after baseUrl removal: ' . $routePath);
 
 
 $routePath = '/' . trim($routePath, '/');
