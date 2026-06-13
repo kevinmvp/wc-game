@@ -19,11 +19,18 @@ use App\Helpers\FlagHelper;
 /** @var int $skipped */
 /** @var string $viewMode */
 
-$predictionLabels = [
-    'home' => 'Home Win',
-    'away' => 'Away Win',
-    'draw' => 'Draw',
-];
+$buildResultLabel = static function (string $result, array $match): string {
+    if ($result === 'home') {
+        return FlagHelper::getFlag((string) ($match['home_team'] ?? '')) . ' ' . (string) ($match['home_team'] ?? '') . ' Win';
+    }
+    if ($result === 'away') {
+        return FlagHelper::getFlag((string) ($match['away_team'] ?? '')) . ' ' . (string) ($match['away_team'] ?? '') . ' Win';
+    }
+    if ($result === 'draw') {
+        return 'Draw';
+    }
+    return 'Pending';
+};
 
 $buildFixturesUrl = static function (int $targetPage, string $targetView) use ($selectedStage, $selectedGroup, $selectedDate, $selectedVenue): string {
     $query = [
@@ -141,7 +148,7 @@ $buildFixturesUrl = static function (int $targetPage, string $targetView) use ($
                         <p><?= htmlspecialchars((string) $match['venue'], ENT_QUOTES, 'UTF-8'); ?><?php if ((string) ($match['venue_city'] ?? '') !== ''): ?>, <?= htmlspecialchars((string) $match['venue_city'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></p>
                     <?php endif; ?>
                     <p><strong>Score:</strong> <?= htmlspecialchars($scoreline, ENT_QUOTES, 'UTF-8'); ?></p>
-                    <p class="muted"><?= htmlspecialchars((string) ($predictionLabels[(string) ($match['result'] ?? '')] ?? 'Pending'), ENT_QUOTES, 'UTF-8'); ?></p>
+                    <p class="muted"><?= htmlspecialchars($buildResultLabel((string) ($match['result'] ?? ''), $match), ENT_QUOTES, 'UTF-8'); ?></p>
                 </article>
             <?php endforeach; ?>
         </div>
@@ -203,7 +210,7 @@ $buildFixturesUrl = static function (int $targetPage, string $targetView) use ($
                         <?php endif; ?>
                     </td>
                     <td><?= htmlspecialchars($scoreline, ENT_QUOTES, 'UTF-8'); ?></td>
-                    <td><?= htmlspecialchars((string) ($predictionLabels[(string) ($match['result'] ?? '')] ?? 'Pending'), ENT_QUOTES, 'UTF-8'); ?></td>
+                    <td><?= htmlspecialchars($buildResultLabel((string) ($match['result'] ?? ''), $match), ENT_QUOTES, 'UTF-8'); ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

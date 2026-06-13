@@ -13,11 +13,18 @@ use App\Helpers\FlagHelper;
 /** @var array<int, array<string, mixed>> $pastVotedMatches */
 /** @var array<int, string> $allowedPredictions */
 
-$predictionLabels = [
-    'home' => 'Home Win',
-    'away' => 'Away Win',
-    'draw' => 'Draw',
-];
+$buildPredictionLabel = static function (string $prediction, array $match): string {
+    if ($prediction === 'home') {
+        return FlagHelper::getFlag((string) ($match['home_team'] ?? '')) . ' ' . (string) ($match['home_team'] ?? '') . ' Win';
+    }
+    if ($prediction === 'away') {
+        return FlagHelper::getFlag((string) ($match['away_team'] ?? '')) . ' ' . (string) ($match['away_team'] ?? '') . ' Win';
+    }
+    if ($prediction === 'draw') {
+        return 'Draw';
+    }
+    return '';
+};
 
 $truncateTeamName = static function (string $team): string {
     if (function_exists('mb_strlen') && function_exists('mb_substr')) {
@@ -217,8 +224,8 @@ $truncateTeamName = static function (string $team): string {
                                 <strong><?= htmlspecialchars((string) ($match['away_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
                             </td>
                             <td><?= htmlspecialchars($scoreline, ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?= htmlspecialchars((string) ($predictionLabels[$prediction] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?= htmlspecialchars((string) ($predictionLabels[$result] ?? 'Pending'), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?= htmlspecialchars($prediction !== '' ? $buildPredictionLabel($prediction, $match) : 'N/A', ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?= htmlspecialchars($result !== '' ? $buildPredictionLabel($result, $match) : 'Pending', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><span class="badge <?= htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
                         </tr>
                     <?php endforeach; ?>
