@@ -34,7 +34,7 @@ declare(strict_types=1);
                     <td><?= $index + 1; ?></td>
                     <td><?= htmlspecialchars((string) $row['name'], ENT_QUOTES, 'UTF-8'); ?></td>
                     <td><?= htmlspecialchars((string) $row['team_name'], ENT_QUOTES, 'UTF-8'); ?></td>
-                    <td><?= htmlspecialchars((string) $row['mobile'], ENT_QUOTES, 'UTF-8'); ?></td>
+                    <!--td><?= htmlspecialchars((string) $row['mobile'], ENT_QUOTES, 'UTF-8'); ?></td-->
                     <td><strong><?= (int) $row['points']; ?></strong></td>
                     <td><?= (int) $row['total_votes']; ?></td>
                 </tr>
