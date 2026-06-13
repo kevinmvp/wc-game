@@ -28,6 +28,20 @@ class VoteModel extends BaseModel
     }
 
     /**
+     * Deletes a vote for one participant and match.
+     */
+    public function deleteVote(int $participantId, int $matchId): bool
+    {
+        $statement = $this->connection->prepare(
+            'DELETE FROM league_votes WHERE participant_id = :participant_id AND match_id = :match_id'
+        );
+        $statement->bindValue(':participant_id', $participantId, PDO::PARAM_INT);
+        $statement->bindValue(':match_id', $matchId, PDO::PARAM_INT);
+
+        return $statement->execute();
+    }
+
+    /**
      * Returns votes for a participant keyed by match id on a specific date.
      *
      * @return array<int, string>

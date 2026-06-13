@@ -458,6 +458,95 @@ class LeagueController extends BaseController
     }
 
     /**
+     * Displays admin page to edit participant votes by match.
+     */
+    public function manageVotes(): void
+    {
+        $this->requireLeagueAdmin();
+
+        $participantModel = new ParticipantModel($this->databaseConfig);
+        $voteModel = new VoteModel($this->databaseConfig);
+        $matchModel = new MatchModel($this->databaseConfig);
+
+        $participants = $participantModel->allOrdered();
+        $selectedParticipantId = max(0, (int) ($_GET['participant_id'] ?? 0));
+
+        $matches = [];
+        $votes = [];
+
+        if ($selectedParticipantId > 0) {
+            $selectedParticipant = $participantModel->findById($selectedParticipantId);
+            if ($selectedParticipant !== null) {
+                $matches = $matchModel->allOrdered();
+                $matchIds = array_map(
+                    static fn (array $match): int => (int) ($match['id'] ?? 0),
+                    $matches
+                );
+                $votes = $voteModel->votesByParticipantForMatches($selectedParticipantId, $matchIds);
+            } else {
+                $selectedParticipantId = 0;
+            }
+        }
+
+        $this->render('league.manage_votes', [
+            'title' => 'Manage Votes',
+            'participants' => $participants,
+            'selectedParticipantId' => $selectedParticipantId,
+            'matches' => $matches,
+            'votes' => $votes,
+            'allowedPredictions' => MatchModel::allowedResults(),
+        ]);
+    }
+
+    /**
+     * Saves admin-managed votes for one participant across matches.
+     */
+    public function updateVotesForParticipant(string $participantId): void
+    {
+        $this->requireLeagueAdmin();
+
+        $targetParticipantId = (int) $participantId;
+        if ($targetParticipantId <= 0) {
+            $this->redirect('/league/manage-votes');
+        }
+
+        $participantModel = new ParticipantModel($this->databaseConfig);
+        $participant = $participantModel->findById($targetParticipantId);
+        if ($participant === null) {
+            $this->redirect('/league/manage-votes');
+        }
+
+        $submittedVotes = $_POST['votes'] ?? [];
+        if (!is_array($submittedVotes)) {
+            $submittedVotes = [];
+        }
+
+        $matchModel = new MatchModel($this->databaseConfig);
+        $voteModel = new VoteModel($this->databaseConfig);
+        $allowedPredictions = MatchModel::allowedResults();
+
+        $matches = $matchModel->allOrdered();
+        foreach ($matches as $match) {
+            $matchId = (int) ($match['id'] ?? 0);
+            if ($matchId <= 0) {
+                continue;
+            }
+
+            $prediction = trim((string) ($submittedVotes[(string) $matchId] ?? ''));
+            if ($prediction === '') {
+                $voteModel->deleteVote($targetParticipantId, $matchId);
+                continue;
+            }
+
+            if (in_array($prediction, $allowedPredictions, true)) {
+                $voteModel->saveVote($targetParticipantId, $matchId, $prediction);
+            }
+        }
+
+        $this->redirect('/league/manage-votes?participant_id=' . (string) $targetParticipantId);
+    }
+
+    /**
      * Displays a protected form for importing exact knockout fixtures later.
      */
     public function knockoutImportForm(): void

@@ -279,6 +279,7 @@ $isActive = static function (string $path) use ($requestPath): bool {
                     <li class="nav-item"><a class="nav-link <?= $isActive('/league/leaderboard') ? 'active' : ''; ?>" <?= $isActive('/league/leaderboard') ? 'aria-current="page"' : ''; ?> href="<?= htmlspecialchars($url('league/leaderboard'), ENT_QUOTES, 'UTF-8'); ?>">Leaderboard</a></li>
                     <?php if ($leagueAdminAuthenticated): ?>
                         <li class="nav-item"><a class="nav-link <?= $isActive('/league/manage-matches') ? 'active' : ''; ?>" <?= $isActive('/league/manage-matches') ? 'aria-current="page"' : ''; ?> href="<?= htmlspecialchars($url('league/manage-matches'), ENT_QUOTES, 'UTF-8'); ?>">Manage Matches</a></li>
+                        <li class="nav-item"><a class="nav-link <?= $isActive('/league/manage-votes') ? 'active' : ''; ?>" <?= $isActive('/league/manage-votes') ? 'aria-current="page"' : ''; ?> href="<?= htmlspecialchars($url('league/manage-votes'), ENT_QUOTES, 'UTF-8'); ?>">Manage Votes</a></li>
                         <li class="nav-item"><a class="nav-link <?= $isActive('/league/knockout-import') ? 'active' : ''; ?>" <?= $isActive('/league/knockout-import') ? 'aria-current="page"' : ''; ?> href="<?= htmlspecialchars($url('league/knockout-import'), ENT_QUOTES, 'UTF-8'); ?>">Knockout Import</a></li>
                         <li class="nav-item d-flex align-items-center">
                             <form method="post" action="<?= htmlspecialchars($url('league/admin-logout'), ENT_QUOTES, 'UTF-8'); ?>" class="inline-nav-form">

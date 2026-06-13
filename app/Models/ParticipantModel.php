@@ -9,6 +9,26 @@ use PDO;
  */
 class ParticipantModel extends BaseModel
 {
+    /**
+     * Returns all participants ordered by name for admin management screens.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function allOrdered(): array
+    {
+        $statement = $this->connection->prepare(
+            'SELECT id, name, team_name, mobile, created_at, updated_at
+             FROM league_participants
+             ORDER BY name ASC, team_name ASC, id ASC'
+        );
+        $statement->execute();
+
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $statement->fetchAll();
+
+        return $rows;
+    }
+
     public function findById(int $id): ?array
     {
         $statement = $this->connection->prepare(
