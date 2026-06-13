@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS league_matches (
     venue VARCHAR(190) NULL,
     venue_city VARCHAR(120) NULL,
     notes VARCHAR(255) NULL,
+    home_score TINYINT UNSIGNED NULL,
+    away_score TINYINT UNSIGNED NULL,
     result ENUM('home', 'away', 'draw') NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,

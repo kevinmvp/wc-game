@@ -113,6 +113,7 @@ $router->post('/league/admin-login', [LeagueController::class, 'adminLoginSubmit
 $router->get('/league/knockout-import', [LeagueController::class, 'knockoutImportForm']);
 $router->post('/league/admin-logout', [LeagueController::class, 'adminLogout']);
 $router->post('/league/matches', [LeagueController::class, 'createMatch']);
+$router->post('/league/matches/{id}/details', [LeagueController::class, 'updateMatchDetails']);
 $router->post('/league/knockout-import', [LeagueController::class, 'knockoutImportSubmit']);
 $router->post('/league/matches/{id}/result', [LeagueController::class, 'setResult']);
 $router->get('/league/logout', [LeagueController::class, 'logoutParticipant']);

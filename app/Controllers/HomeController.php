@@ -68,11 +68,16 @@ class HomeController extends BaseController
 
         $participant = null;
         $todayVotes = []; // This will now include votes for today's *upcoming* matches
+        $pastVotedMatches = [];
         $participantSession = $_SESSION['participant'] ?? null;
         if (is_array($participantSession) && isset($participantSession['id'])) {
             $participant = $participantSession;
             // Fetch votes for today's matches, not necessarily upcoming ones, to cover votes already cast
             $todayVotes = $voteModel->votesByParticipantOnDate((int) $participantSession['id'], $today);
+            $pastVotedMatches = $voteModel->pastVotedMatchesByParticipant(
+                (int) $participantSession['id'],
+                $now->format('Y-m-d H:i:s')
+            );
         }
 
         $this->render('home.index', [
@@ -82,6 +87,7 @@ class HomeController extends BaseController
             'upcomingMatches' => $allUpcomingMatches, // Changed from todayMatches to upcomingMatches
             'participant' => $participant,
             'todayVotes' => $todayVotes,
+            'pastVotedMatches' => $pastVotedMatches,
             'allowedPredictions' => MatchModel::allowedResults(),
             'hideAppBrand' => true,
         ]);

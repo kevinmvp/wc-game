@@ -74,7 +74,7 @@ class MatchModel extends BaseModel
      */
     public function allByDate(string $matchDate, ?string $currentTime = null): array
     {
-        $sql = 'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, result, created_at, updated_at
+        $sql = 'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, home_score, away_score, result, created_at, updated_at
              FROM league_matches
                 WHERE match_date = :match_date';
         $bindings = [':match_date' => $matchDate];
@@ -104,9 +104,9 @@ class MatchModel extends BaseModel
     public function allOrdered(): array
     {
         $statement = $this->connection->prepare(
-            'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, result, created_at, updated_at
+            'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, home_score, away_score, result, created_at, updated_at
              FROM league_matches
-             ORDER BY match_date DESC, local_time DESC, id DESC'
+               ORDER BY match_date ASC, local_time ASC, id ASC'
         );
         $statement->execute();
 
@@ -132,7 +132,7 @@ class MatchModel extends BaseModel
          */
     public function filterFixturesAdvanced(?string $stage, ?string $groupName, ?string $matchDate, ?string $venue): array
     {
-        $sql = 'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, result, created_at, updated_at
+        $sql = 'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, home_score, away_score, result, created_at, updated_at
                 FROM league_matches
                 WHERE 1 = 1';
         $bindings = [];
@@ -177,7 +177,7 @@ class MatchModel extends BaseModel
      */
     public function filterFixturesPaginated(?string $stage, ?string $groupName, ?string $matchDate, ?string $venue, int $limit, int $offset): array
     {
-        $sql = 'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, result, created_at, updated_at
+        $sql = 'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, home_score, away_score, result, created_at, updated_at
                 FROM league_matches
                 WHERE 1 = 1';
         $bindings = [];
@@ -305,7 +305,7 @@ class MatchModel extends BaseModel
     public function findById(int $id): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, result, created_at, updated_at
+            'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, home_score, away_score, result, created_at, updated_at
              FROM league_matches
              WHERE id = :id
              LIMIT 1'
@@ -496,6 +496,80 @@ class MatchModel extends BaseModel
         );
         $statement->bindValue(':id', $id, PDO::PARAM_INT);
         if ($result === null) {
+            $statement->bindValue(':result', null, PDO::PARAM_NULL);
+        } else {
+            $statement->bindValue(':result', $result, PDO::PARAM_STR);
+        }
+
+        return $statement->execute();
+    }
+
+    /**
+     * Updates match schedule details and optional scoreline.
+     */
+    public function updateScheduleAndScore(
+        int $id,
+        string $matchDate,
+        ?string $localTime,
+        string $homeTeam,
+        string $awayTeam,
+        ?string $venue,
+        ?string $venueCity,
+        ?int $homeScore,
+        ?int $awayScore,
+        ?string $result
+    ): bool {
+        $statement = $this->connection->prepare(
+            'UPDATE league_matches
+             SET match_date = :match_date,
+                 local_time = :local_time,
+                 home_team = :home_team,
+                 away_team = :away_team,
+                 venue = :venue,
+                 venue_city = :venue_city,
+                 home_score = :home_score,
+                 away_score = :away_score,
+                 result = :result,
+                 updated_at = NOW()
+             WHERE id = :id'
+        );
+
+        $statement->bindValue(':id', $id, PDO::PARAM_INT);
+        $statement->bindValue(':match_date', $matchDate, PDO::PARAM_STR);
+        if ($localTime === null || $localTime === '') {
+            $statement->bindValue(':local_time', null, PDO::PARAM_NULL);
+        } else {
+            $statement->bindValue(':local_time', $localTime, PDO::PARAM_STR);
+        }
+
+        $statement->bindValue(':home_team', $homeTeam, PDO::PARAM_STR);
+        $statement->bindValue(':away_team', $awayTeam, PDO::PARAM_STR);
+
+        if ($venue === null || $venue === '') {
+            $statement->bindValue(':venue', null, PDO::PARAM_NULL);
+        } else {
+            $statement->bindValue(':venue', $venue, PDO::PARAM_STR);
+        }
+
+        if ($venueCity === null || $venueCity === '') {
+            $statement->bindValue(':venue_city', null, PDO::PARAM_NULL);
+        } else {
+            $statement->bindValue(':venue_city', $venueCity, PDO::PARAM_STR);
+        }
+
+        if ($homeScore === null) {
+            $statement->bindValue(':home_score', null, PDO::PARAM_NULL);
+        } else {
+            $statement->bindValue(':home_score', $homeScore, PDO::PARAM_INT);
+        }
+
+        if ($awayScore === null) {
+            $statement->bindValue(':away_score', null, PDO::PARAM_NULL);
+        } else {
+            $statement->bindValue(':away_score', $awayScore, PDO::PARAM_INT);
+        }
+
+        if ($result === null || $result === '') {
             $statement->bindValue(':result', null, PDO::PARAM_NULL);
         } else {
             $statement->bindValue(':result', $result, PDO::PARAM_STR);

@@ -120,6 +120,13 @@ $buildFixturesUrl = static function (int $targetPage, string $targetView) use ($
     <?php elseif ($viewMode === 'grid'): ?>
         <div class="card-grid">
             <?php foreach ($matches as $match): ?>
+                <?php
+                $homeScore = $match['home_score'] ?? null;
+                $awayScore = $match['away_score'] ?? null;
+                $scoreline = ($homeScore !== null && $awayScore !== null)
+                    ? ((string) $homeScore . ' - ' . (string) $awayScore)
+                    : '-';
+                ?>
                 <article class="fixture-card">
                     <p class="muted"><?= htmlspecialchars((string) $match['match_date'], ENT_QUOTES, 'UTF-8'); ?><?php if ((string) ($match['local_time'] ?? '') !== ''): ?> at <?= htmlspecialchars(substr((string) $match['local_time'], 0, 5), ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></p>
                     <h3>
@@ -133,6 +140,7 @@ $buildFixturesUrl = static function (int $targetPage, string $targetView) use ($
                     <?php if ((string) ($match['venue'] ?? '') !== ''): ?>
                         <p><?= htmlspecialchars((string) $match['venue'], ENT_QUOTES, 'UTF-8'); ?><?php if ((string) ($match['venue_city'] ?? '') !== ''): ?>, <?= htmlspecialchars((string) $match['venue_city'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></p>
                     <?php endif; ?>
+                    <p><strong>Score:</strong> <?= htmlspecialchars($scoreline, ENT_QUOTES, 'UTF-8'); ?></p>
                     <p class="muted"><?= htmlspecialchars((string) ($predictionLabels[(string) ($match['result'] ?? '')] ?? 'Pending'), ENT_QUOTES, 'UTF-8'); ?></p>
                 </article>
             <?php endforeach; ?>
@@ -147,6 +155,7 @@ $buildFixturesUrl = static function (int $targetPage, string $targetView) use ($
                 <th>Stage</th>
                 <th>Fixture</th>
                 <th>Venue</th>
+                <th>Score</th>
                 <th>Result</th>
             </tr>
             </thead>
@@ -155,9 +164,16 @@ $buildFixturesUrl = static function (int $targetPage, string $targetView) use ($
                 <?php if ($currentDate !== (string) $match['match_date']): ?>
                     <?php $currentDate = (string) $match['match_date']; ?>
                     <tr>
-                        <td class="table-date-divider" colspan="5"><?= htmlspecialchars($currentDate, ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td class="table-date-divider" colspan="6"><?= htmlspecialchars($currentDate, ENT_QUOTES, 'UTF-8'); ?></td>
                     </tr>
                 <?php endif; ?>
+                <?php
+                $homeScore = $match['home_score'] ?? null;
+                $awayScore = $match['away_score'] ?? null;
+                $scoreline = ($homeScore !== null && $awayScore !== null)
+                    ? ((string) $homeScore . ' - ' . (string) $awayScore)
+                    : '-';
+                ?>
                 <tr>
                     <td>
                         <?php if ((string) ($match['local_time'] ?? '') !== ''): ?>
@@ -186,6 +202,7 @@ $buildFixturesUrl = static function (int $targetPage, string $targetView) use ($
                             <br><span class="muted"><?= htmlspecialchars((string) $match['venue_city'], ENT_QUOTES, 'UTF-8'); ?></span>
                         <?php endif; ?>
                     </td>
+                    <td><?= htmlspecialchars($scoreline, ENT_QUOTES, 'UTF-8'); ?></td>
                     <td><?= htmlspecialchars((string) ($predictionLabels[(string) ($match['result'] ?? '')] ?? 'Pending'), ENT_QUOTES, 'UTF-8'); ?></td>
                 </tr>
             <?php endforeach; ?>

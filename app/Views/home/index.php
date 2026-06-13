@@ -9,6 +9,7 @@ use App\Helpers\FlagHelper;
 /** @var array<int, array<string, mixed>> $upcomingMatches */
 /** @var array<string, mixed>|null $participant */
 /** @var array<int, string> $todayVotes */
+/** @var array<int, array<string, mixed>> $pastVotedMatches */
 /** @var array<int, string> $allowedPredictions */
 
 $predictionLabels = [
@@ -151,3 +152,78 @@ $truncateTeamName = static function (string $team): string {
         <?php endif; ?>
     <?php endif; ?>
 </section>
+
+<?php if ($participant !== null): ?>
+    <section class="panel">
+        <h2>Your Past Votes</h2>
+        <?php if ($pastVotedMatches === []): ?>
+            <p class="muted">You have no past voted matches yet.</p>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Stage</th>
+                        <th>Fixture</th>
+                        <th>Scoreline</th>
+                        <th>Your Vote</th>
+                        <th>Result</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($pastVotedMatches as $match): ?>
+                        <?php
+                        $prediction = (string) ($match['prediction'] ?? '');
+                        $result = (string) ($match['result'] ?? '');
+                        $homeScore = $match['home_score'] ?? null;
+                        $awayScore = $match['away_score'] ?? null;
+                        $scoreline = ($homeScore !== null && $awayScore !== null)
+                            ? ((string) $homeScore . ' - ' . (string) $awayScore)
+                            : '-';
+                        $statusLabel = 'Pending';
+                        $statusClass = 'text-bg-secondary';
+
+                        if ($prediction === '') {
+                            $statusLabel = 'Did not vote';
+                            $statusClass = 'text-bg-warning';
+                        } elseif ($result !== '') {
+                            if ($prediction === $result) {
+                                $statusLabel = 'Correct';
+                                $statusClass = 'text-bg-success';
+                            } else {
+                                $statusLabel = 'Incorrect';
+                                $statusClass = 'text-bg-danger';
+                            }
+                        }
+                        ?>
+                        <tr>
+                            <td><?= htmlspecialchars((string) ($match['match_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?= htmlspecialchars((string) (($match['local_time'] ?? '') !== '' ? substr((string) ($match['local_time'] ?? ''), 0, 5) : 'TBC'), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td>
+                                <?= htmlspecialchars((string) ($match['stage'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                <?php if ((string) ($match['group_name'] ?? '') !== ''): ?>
+                                    <br><span class="muted"><?= htmlspecialchars((string) ($match['group_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?= FlagHelper::getFlag((string) ($match['home_team'] ?? '')); ?>
+                                <strong><?= htmlspecialchars((string) ($match['home_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                vs
+                                <?= FlagHelper::getFlag((string) ($match['away_team'] ?? '')); ?>
+                                <strong><?= htmlspecialchars((string) ($match['away_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
+                            </td>
+                            <td><?= htmlspecialchars($scoreline, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?= htmlspecialchars((string) ($predictionLabels[$prediction] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?= htmlspecialchars((string) ($predictionLabels[$result] ?? 'Pending'), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><span class="badge <?= htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
+<?php endif; ?>

@@ -639,6 +639,78 @@ class LeagueController extends BaseController
     }
 
     /**
+     * Updates schedule details and scoreline for a match.
+     */
+    public function updateMatchDetails(string $matchId): void
+    {
+        $this->requireLeagueAdmin();
+
+        $formData = [
+            'match_date' => trim((string) ($_POST['match_date'] ?? '')),
+            'local_time' => trim((string) ($_POST['local_time'] ?? '')),
+            'home_team' => trim((string) ($_POST['home_team'] ?? '')),
+            'away_team' => trim((string) ($_POST['away_team'] ?? '')),
+            'venue' => trim((string) ($_POST['venue'] ?? '')),
+            'venue_city' => trim((string) ($_POST['venue_city'] ?? '')),
+            'home_score' => trim((string) ($_POST['home_score'] ?? '')),
+            'away_score' => trim((string) ($_POST['away_score'] ?? '')),
+        ];
+
+        $errors = $this->validateMatchAdminUpdateForm($formData);
+        if ($errors !== []) {
+            $matchModel = new MatchModel($this->databaseConfig);
+            $this->render('league.manage_matches', [
+                'title' => 'Manage Matches',
+                'errors' => $errors,
+                'formData' => [
+                    'match_date' => date('Y-m-d'),
+                    'home_team' => '',
+                    'away_team' => '',
+                ],
+                'matches' => $matchModel->allOrdered(),
+                'allowedResults' => MatchModel::allowedResults(),
+            ], 422);
+
+            return;
+        }
+
+        $matchModel = new MatchModel($this->databaseConfig);
+        $match = $matchModel->findById((int) $matchId);
+        if ($match === null) {
+            $this->redirect('/league/manage-matches');
+        }
+
+        $homeScore = $formData['home_score'] === '' ? null : (int) $formData['home_score'];
+        $awayScore = $formData['away_score'] === '' ? null : (int) $formData['away_score'];
+
+        $result = null;
+        if ($homeScore !== null && $awayScore !== null) {
+            if ($homeScore > $awayScore) {
+                $result = MatchModel::RESULT_HOME;
+            } elseif ($awayScore > $homeScore) {
+                $result = MatchModel::RESULT_AWAY;
+            } else {
+                $result = MatchModel::RESULT_DRAW;
+            }
+        }
+
+        $matchModel->updateScheduleAndScore(
+            (int) $matchId,
+            $formData['match_date'],
+            $formData['local_time'] === '' ? null : $formData['local_time'],
+            $formData['home_team'],
+            $formData['away_team'],
+            $formData['venue'] === '' ? null : $formData['venue'],
+            $formData['venue_city'] === '' ? null : $formData['venue_city'],
+            $homeScore,
+            $awayScore,
+            $result
+        );
+
+        $this->redirect('/league/manage-matches');
+    }
+
+    /**
      * Ends participant session.
      */
     public function logoutParticipant(): void
@@ -766,6 +838,43 @@ class LeagueController extends BaseController
         $parsed = date_create_from_format('Y-m-d', $formData['match_date']);
         if ($parsed === false || $parsed->format('Y-m-d') !== $formData['match_date']) {
             $errors[] = 'Match date must be a valid Y-m-d value.';
+        }
+
+        return $errors;
+    }
+
+    /**
+     * @param array<string, string> $formData
+     *
+     * @return array<int, string>
+     */
+    private function validateMatchAdminUpdateForm(array $formData): array
+    {
+        $errors = $this->validateMatchForm([
+            'match_date' => $formData['match_date'],
+            'home_team' => $formData['home_team'],
+            'away_team' => $formData['away_team'],
+        ]);
+
+        if ($formData['local_time'] !== '') {
+            $parsedTime = date_create_from_format('H:i', $formData['local_time']);
+            if ($parsedTime === false || $parsedTime->format('H:i') !== $formData['local_time']) {
+                $errors[] = 'Local time must use HH:MM format.';
+            }
+        }
+
+        $homeScoreEmpty = $formData['home_score'] === '';
+        $awayScoreEmpty = $formData['away_score'] === '';
+        if ($homeScoreEmpty !== $awayScoreEmpty) {
+            $errors[] = 'Both home and away scores are required when setting a scoreline.';
+        }
+
+        if (!$homeScoreEmpty && (!ctype_digit($formData['home_score']) || (int) $formData['home_score'] > 99)) {
+            $errors[] = 'Home score must be a number between 0 and 99.';
+        }
+
+        if (!$awayScoreEmpty && (!ctype_digit($formData['away_score']) || (int) $formData['away_score'] > 99)) {
+            $errors[] = 'Away score must be a number between 0 and 99.';
         }
 
         return $errors;
