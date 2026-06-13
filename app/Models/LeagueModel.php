@@ -15,19 +15,22 @@ class LeagueModel extends BaseModel
      *
      * @return array<int, array<string, mixed>>
      */
-    public function leaderboard(): array
+    public function leaderboard(bool $includeMobile = false): array
     {
+        $mobileSelect = $includeMobile ? 'p.mobile,' : 'NULL AS mobile,';
+        $mobileGroupBy = $includeMobile ? ', p.mobile' : '';
+
         $statement = $this->connection->prepare(
             'SELECT p.id,
                     p.name,
                     p.team_name,
-                    p.mobile,
+                    ' . $mobileSelect . '
                     COALESCE(SUM(CASE WHEN m.result IS NOT NULL AND v.prediction = m.result THEN 1 ELSE 0 END), 0) AS points,
                     COUNT(v.id) AS total_votes
              FROM league_participants p
              LEFT JOIN league_votes v ON v.participant_id = p.id
              LEFT JOIN league_matches m ON m.id = v.match_id
-             GROUP BY p.id, p.name, p.team_name, p.mobile
+             GROUP BY p.id, p.name, p.team_name' . $mobileGroupBy . '
              ORDER BY points DESC, total_votes DESC, p.id ASC'
         );
         $statement->execute();

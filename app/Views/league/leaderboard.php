@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 /** @var array<int, array<string, mixed>> $rows */
+/** @var bool $canViewMobile */
 ?>
 <section class="panel">
     <h1>League Leaderboard</h1>
@@ -23,7 +24,9 @@ declare(strict_types=1);
                 <th>#</th>
                 <th>Name</th>
                 <th>Team Name</th>
-                <!--<th>Mobile</th>-->
+                <?php if ($canViewMobile): ?>
+                    <th>Mobile</th>
+                <?php endif; ?>
                 <th>Points</th>
                 <th>Total Votes</th>
             </tr>
@@ -34,7 +37,9 @@ declare(strict_types=1);
                     <td><?= $index + 1; ?></td>
                     <td><?= htmlspecialchars((string) $row['name'], ENT_QUOTES, 'UTF-8'); ?></td>
                     <td><?= htmlspecialchars((string) $row['team_name'], ENT_QUOTES, 'UTF-8'); ?></td>
-                    <!--td><?= htmlspecialchars((string) $row['mobile'], ENT_QUOTES, 'UTF-8'); ?></td-->
+                    <?php if ($canViewMobile): ?>
+                        <td><?= htmlspecialchars((string) ($row['mobile'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                    <?php endif; ?>
                     <td><strong><?= (int) $row['points']; ?></strong></td>
                     <td><?= (int) $row['total_votes']; ?></td>
                 </tr>

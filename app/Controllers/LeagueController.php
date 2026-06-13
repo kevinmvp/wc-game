@@ -428,10 +428,12 @@ class LeagueController extends BaseController
     public function leaderboard(): void
     {
         $leagueModel = new LeagueModel($this->databaseConfig);
+        $canViewMobile = (($_SESSION['league_admin_authenticated'] ?? false) === true);
 
         $this->render('league.leaderboard', [
             'title' => 'Leaderboard',
-            'rows' => $leagueModel->leaderboard(),
+            'rows' => $leagueModel->leaderboard($canViewMobile),
+            'canViewMobile' => $canViewMobile,
         ]);
     }
 
