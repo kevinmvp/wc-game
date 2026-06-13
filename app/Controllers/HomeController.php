@@ -85,7 +85,7 @@ class HomeController extends BaseController
         }
 
         $this->render('home.index', [
-            'title' => 'RPC League',
+            'title' => 'RPC World Cup League',
             'leaderboardRows' => $leaderboardRows,
             'matchVoteSummary' => $matchVoteSummary,
             'today' => $today,

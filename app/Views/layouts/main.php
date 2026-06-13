@@ -257,7 +257,7 @@ $isActive = static function (string $path) use ($requestPath): bool {
                 <?php if (!$hideAppBrand): ?>
                     RPC World Cup League
                 <?php else: ?>
-                    RPC League
+                    RPC World Cup League
                 <?php endif; ?>
                 <?php if (isset($_SESSION['participant']['name'])): ?>
                     <span class="session-pill">
