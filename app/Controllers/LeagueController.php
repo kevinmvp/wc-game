@@ -90,7 +90,7 @@ class LeagueController extends BaseController
             'mobile' => (string) $participant['mobile'],
         ];
 
-        $this->redirect('/league/daily');
+        $this->redirect('/'); // Changed from '/league/daily' to '/'
     }
 
     /**
@@ -165,7 +165,7 @@ class LeagueController extends BaseController
             'mobile' => (string) $participant['mobile'],
         ];
 
-        $this->redirect('/league/daily');
+        $this->redirect('/'); // Changed from '/league/daily' to '/'
     }
 
     /**
