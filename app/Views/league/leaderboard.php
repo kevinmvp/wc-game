@@ -23,7 +23,7 @@ declare(strict_types=1);
                 <th>#</th>
                 <th>Name</th>
                 <th>Team Name</th>
-                <th>Mobile</th>
+                <!--<th>Mobile</th>-->
                 <th>Points</th>
                 <th>Total Votes</th>
             </tr>
