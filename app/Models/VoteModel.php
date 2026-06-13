@@ -54,4 +54,44 @@ class VoteModel extends BaseModel
 
         return $votes;
     }
+
+    /**
+     * Returns votes for a participant keyed by match id for provided matches.
+     *
+     * @param array<int, int> $matchIds
+     *
+     * @return array<int, string>
+     */
+    public function votesByParticipantForMatches(int $participantId, array $matchIds): array
+    {
+        if ($matchIds === []) {
+            return [];
+        }
+
+        $matchIds = array_values(array_unique(array_map(static fn ($id): int => (int) $id, $matchIds)));
+        $placeholders = implode(', ', array_fill(0, count($matchIds), '?'));
+
+        $statement = $this->connection->prepare(
+            'SELECT match_id, prediction
+             FROM league_votes
+             WHERE participant_id = ? AND match_id IN (' . $placeholders . ')'
+        );
+
+        $statement->bindValue(1, $participantId, PDO::PARAM_INT);
+        foreach ($matchIds as $index => $matchId) {
+            $statement->bindValue($index + 2, $matchId, PDO::PARAM_INT);
+        }
+
+        $statement->execute();
+
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $statement->fetchAll();
+
+        $votes = [];
+        foreach ($rows as $row) {
+            $votes[(int) $row['match_id']] = (string) $row['prediction'];
+        }
+
+        return $votes;
+    }
 }

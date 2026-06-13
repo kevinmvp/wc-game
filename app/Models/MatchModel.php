@@ -68,18 +68,26 @@ class MatchModel extends BaseModel
 
     /**
      * Returns all matches scheduled on a specific date.
+      * Optionally filters to upcoming matches when current time is provided.
      *
      * @return array<int, array<string, mixed>>
      */
-    public function allByDate(string $matchDate): array
+    public function allByDate(string $matchDate, ?string $currentTime = null): array
     {
-        $statement = $this->connection->prepare(
-            'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, result, created_at, updated_at
+        $sql = 'SELECT id, stage, group_name, match_date, local_time, home_team, away_team, venue, venue_city, notes, result, created_at, updated_at
              FROM league_matches
-             WHERE match_date = :match_date
-             ORDER BY local_time ASC, id ASC'
-        );
-        $statement->bindValue(':match_date', $matchDate, PDO::PARAM_STR);
+                WHERE match_date = :match_date';
+        $bindings = [':match_date' => $matchDate];
+
+        if ($currentTime !== null) {
+            $sql .= ' AND (local_time IS NULL OR CONCAT(match_date, \' \', local_time) >= :current_datetime)';
+            $bindings[':current_datetime'] = $matchDate . ' ' . $currentTime;
+        }
+        $sql .= ' ORDER BY local_time ASC, id ASC';
+        $statement = $this->connection->prepare($sql);
+        foreach ($bindings as $parameter => $value) {
+            $statement->bindValue($parameter, $value, PDO::PARAM_STR);
+        }
         $statement->execute();
 
         /** @var array<int, array<string, mixed>> $rows */
@@ -117,7 +125,6 @@ class MatchModel extends BaseModel
     {
         return $this->filterFixturesAdvanced($stage, $groupName, null, null);
     }
-
         /**
          * Returns fixtures filtered by stage, optional group, optional date, and optional venue.
          *
@@ -151,7 +158,6 @@ class MatchModel extends BaseModel
         }
 
         $sql .= ' ORDER BY match_date ASC, local_time ASC, id ASC';
-
         $statement = $this->connection->prepare($sql);
         foreach ($bindings as $parameter => $value) {
             $statement->bindValue($parameter, $value, PDO::PARAM_STR);

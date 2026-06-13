@@ -104,6 +104,7 @@ $router->get('/league/join', [LeagueController::class, 'joinForm']);
 $router->post('/league/join', [LeagueController::class, 'joinSubmit']);
 $router->get('/league/daily', [LeagueController::class, 'dailyGames']);
 $router->get('/league/fixtures', [LeagueController::class, 'fixtures']);
+$router->post('/league/votes', [LeagueController::class, 'submitVotesBulk']);
 $router->post('/league/vote/{id}', [LeagueController::class, 'submitVote']);
 $router->get('/league/leaderboard', [LeagueController::class, 'leaderboard']);
 $router->get('/league/manage-matches', [LeagueController::class, 'manageMatches']);

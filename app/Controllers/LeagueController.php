@@ -169,28 +169,40 @@ class LeagueController extends BaseController
     }
 
     /**
-     * Displays today's matches and the participant's current votes.
+     * Displays upcoming matches for today and tomorrow with current votes.
      */
     public function dailyGames(): void
     {
         $participant = $this->requireParticipant();
+        $timezone = new \DateTimeZone((string) ($this->appConfig['timezone'] ?? date_default_timezone_get()));
+        $now = new \DateTimeImmutable('now', $timezone);
+        $today = $now->format('Y-m-d');
+        $tomorrow = $now->modify('+1 day')->format('Y-m-d');
+        $currentTime = $now->format('H:i:s');
         $viewMode = trim((string) ($_GET['view'] ?? 'table'));
         if (!in_array($viewMode, ['table', 'grid'], true)) {
             $viewMode = 'table';
         }
 
-        $today = date('Y-m-d');
         $matchModel = new MatchModel($this->databaseConfig);
         $voteModel = new VoteModel($this->databaseConfig);
         $leagueModel = new LeagueModel($this->databaseConfig);
 
-        $matches = $matchModel->allByDate($today);
-        $votes = $voteModel->votesByParticipantOnDate((int) $participant['id'], $today);
+        $todayMatches = $matchModel->allByDate($today, $currentTime);
+        $tomorrowMatches = $matchModel->allByDate($tomorrow);
+        $matches = array_merge($todayMatches, $tomorrowMatches);
+
+        $matchIds = array_map(
+            static fn (array $match): int => (int) ($match['id'] ?? 0),
+            $matches
+        );
+        $votes = $voteModel->votesByParticipantForMatches((int) $participant['id'], $matchIds);
         $points = $leagueModel->pointsForParticipant((int) $participant['id']);
 
         $this->render('league.daily', [
             'title' => 'Daily Matches',
             'today' => $today,
+            'tomorrow' => $tomorrow,
             'participant' => $participant,
             'matches' => $matches,
             'votes' => $votes,
@@ -306,8 +318,30 @@ class LeagueController extends BaseController
             $this->redirect('/league/daily');
         }
 
-        $today = date('Y-m-d');
-        if ((string) $match['match_date'] !== $today) {
+        $timezone = new \DateTimeZone((string) ($this->appConfig['timezone'] ?? date_default_timezone_get()));
+        $now = new \DateTimeImmutable('now', $timezone);
+        $today = $now->format('Y-m-d');
+        $tomorrow = $now->modify('+1 day')->format('Y-m-d');
+        $matchDate = (string) ($match['match_date'] ?? '');
+
+        if (!in_array($matchDate, [$today, $tomorrow], true)) {
+            $this->redirect('/league/daily');
+        }
+
+        $localTime = (string) ($match['local_time'] ?? '');
+        if ($localTime !== '') {
+            $kickoff = \DateTimeImmutable::createFromFormat(
+                'Y-m-d H:i:s',
+                $matchDate . ' ' . $localTime,
+                $timezone
+            );
+
+            if ($kickoff !== false && $now >= $kickoff) {
+                $this->redirect('/league/daily');
+            }
+        }
+
+        if ((string) ($match['result'] ?? '') !== '') {
             $this->redirect('/league/daily');
         }
 
@@ -315,6 +349,77 @@ class LeagueController extends BaseController
         $voteModel->saveVote((int) $participant['id'], (int) $matchId, $prediction);
 
         $this->redirect('/league/daily');
+    }
+
+    /**
+     * Stores many participant votes submitted from the daily page.
+     */
+    public function submitVotesBulk(): void
+    {
+        $participant = $this->requireParticipant();
+
+        if (!$this->verifyCsrfToken((string) ($_POST['_csrf'] ?? ''))) {
+            $this->redirect('/league/daily');
+        }
+
+        $submittedVotes = $_POST['predictions'] ?? [];
+        if (!is_array($submittedVotes) || $submittedVotes === []) {
+            $viewMode = trim((string) ($_POST['view'] ?? 'table'));
+            $viewMode = in_array($viewMode, ['table', 'grid'], true) ? $viewMode : 'table';
+            $this->redirect('/league/daily?view=' . $viewMode);
+        }
+
+        $timezone = new \DateTimeZone((string) ($this->appConfig['timezone'] ?? date_default_timezone_get()));
+        $now = new \DateTimeImmutable('now', $timezone);
+        $matchModel = new MatchModel($this->databaseConfig);
+        $voteModel = new VoteModel($this->databaseConfig);
+        $allowedResults = MatchModel::allowedResults();
+
+        foreach ($submittedVotes as $rawMatchId => $rawPrediction) {
+            $matchId = (int) $rawMatchId;
+            if ($matchId <= 0) {
+                continue;
+            }
+
+            $prediction = trim((string) $rawPrediction);
+            if (!in_array($prediction, $allowedResults, true)) {
+                continue;
+            }
+
+            $match = $matchModel->findById($matchId);
+            if ($match === null) {
+                continue;
+            }
+
+            $matchDate = (string) ($match['match_date'] ?? '');
+            if ($matchDate === '') {
+                continue;
+            }
+
+            $localTime = (string) ($match['local_time'] ?? '');
+            if ($localTime !== '') {
+                $timeValue = strlen($localTime) === 5 ? ($localTime . ':00') : $localTime;
+                $kickoff = \DateTimeImmutable::createFromFormat(
+                    'Y-m-d H:i:s',
+                    $matchDate . ' ' . $timeValue,
+                    $timezone
+                );
+
+                if ($kickoff !== false && $now >= $kickoff) {
+                    continue;
+                }
+            }
+
+            if ((string) ($match['result'] ?? '') !== '') {
+                continue;
+            }
+
+            $voteModel->saveVote((int) $participant['id'], $matchId, $prediction);
+        }
+
+        $viewMode = trim((string) ($_POST['view'] ?? 'table'));
+        $viewMode = in_array($viewMode, ['table', 'grid'], true) ? $viewMode : 'table';
+        $this->redirect('/league/daily?view=' . $viewMode);
     }
 
     /**
@@ -806,4 +911,5 @@ class LeagueController extends BaseController
         }
     }
 }
+
 

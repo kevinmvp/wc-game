@@ -122,25 +122,21 @@ $truncateTeamName = static function (string $team): string {
                         <?php if ($participant === null): ?>
                             <span class="muted">Register to vote or <a href="league/login">login here</a</span>
                         <?php else: ?>
-                            <form method="post" action="<?= htmlspecialchars($url('league/vote/' . (string) $matchId), ENT_QUOTES, 'UTF-8'); ?>" class="inline-form">
-                                <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
-                                <select class="form-select form-select-sm" name="prediction" required>
-                                    <option value="">Choose</option>
-                                    <?php foreach ($allowedPredictions as $prediction): ?>
-                                        <?php
-                                        $predictionLabel = match ($prediction) {
-                                            'home' => FlagHelper::getFlag((string) ($match['home_team'] ?? '')) . ' ' . $truncateTeamName((string) ($match['home_team'] ?? '')) . ' to win',
-                                            'away' => FlagHelper::getFlag((string) ($match['away_team'] ?? '')) . ' ' . $truncateTeamName((string) ($match['away_team'] ?? '')) . ' to win',
-                                            default => 'Draw',
-                                        };
-                                        ?>
-                                        <option value="<?= htmlspecialchars($prediction, ENT_QUOTES, 'UTF-8'); ?>" <?= $prediction === $currentVote ? 'selected' : ''; ?>>
-                                            <?= htmlspecialchars($predictionLabel, ENT_QUOTES, 'UTF-8'); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <button class="btn btn-success btn-sm" type="submit">Save</button>
-                            </form>
+                            <select class="form-select form-select-sm" disabled>
+                                <option value="" <?= $currentVote === '' ? 'selected' : ''; ?>>Choose</option>
+                                <?php foreach ($allowedPredictions as $prediction): ?>
+                                    <?php
+                                    $predictionLabel = match ($prediction) {
+                                        'home' => FlagHelper::getFlag((string) ($match['home_team'] ?? '')) . ' ' . $truncateTeamName((string) ($match['home_team'] ?? '')) . ' to win',
+                                        'away' => FlagHelper::getFlag((string) ($match['away_team'] ?? '')) . ' ' . $truncateTeamName((string) ($match['away_team'] ?? '')) . ' to win',
+                                        default => 'Draw',
+                                    };
+                                    ?>
+                                    <option value="<?= htmlspecialchars($prediction, ENT_QUOTES, 'UTF-8'); ?>" <?= $prediction === $currentVote ? 'selected' : ''; ?>>
+                                        <?= htmlspecialchars($predictionLabel, ENT_QUOTES, 'UTF-8'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -148,5 +144,10 @@ $truncateTeamName = static function (string $team): string {
             </tbody>
         </table>
         </div>
+        <?php if ($participant !== null): ?>
+            <div class="d-flex justify-content-end mt-3">
+                <a class="btn btn-success" href="<?= htmlspecialchars($url('league/daily'), ENT_QUOTES, 'UTF-8'); ?>">Vote Now</a>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </section>
