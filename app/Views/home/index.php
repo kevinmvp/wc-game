@@ -120,7 +120,7 @@ $truncateTeamName = static function (string $team): string {
                     </td>
                     <td>
                         <?php if ($participant === null): ?>
-                            <span class="muted">Register to vote or <a href="league/login">login here</a</span>
+                            <span class="muted">Register to vote or <a href="<?= htmlspecialchars($url('league/login'), ENT_QUOTES, 'UTF-8'); ?>">login here</a></span>
                         <?php else: ?>
                             <select class="form-select form-select-sm" disabled>
                                 <option value="" <?= $currentVote === '' ? 'selected' : ''; ?>>Choose</option>

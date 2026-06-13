@@ -1,5 +1,4 @@
 RewriteEngine On
-RewriteBase /worldcup/
 
 # Route all requests through the front controller when files/directories do not exist.
 RewriteCond %{REQUEST_FILENAME} !-f

@@ -1,5 +1,4 @@
 RewriteEngine On
-RewriteBase /wc-game/
 
 # Route all non-file/directory requests through the public front controller
 RewriteCond %{REQUEST_FILENAME} !-f
