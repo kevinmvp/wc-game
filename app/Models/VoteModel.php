@@ -147,6 +147,45 @@ class VoteModel extends BaseModel
     }
 
     /**
+     * Returns upcoming matches a participant has voted on.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function futureVotedMatchesByParticipant(int $participantId, string $currentDateTime): array
+    {
+        $statement = $this->connection->prepare(
+            'SELECT m.id,
+                    m.stage,
+                    m.group_name,
+                    m.match_date,
+                    m.local_time,
+                    m.home_team,
+                    m.away_team,
+                    m.venue,
+                    m.venue_city,
+                    m.notes,
+                    m.home_score,
+                    m.away_score,
+                    m.result,
+                    m.created_at,
+                    m.updated_at
+             FROM league_votes v
+             INNER JOIN league_matches m ON m.id = v.match_id
+             WHERE v.participant_id = :participant_id
+                             AND CONCAT(m.match_date, " ", COALESCE(m.local_time, "00:00:00")) > :current_datetime
+             ORDER BY m.match_date ASC, m.local_time ASC, m.id ASC'
+        );
+        $statement->bindValue(':participant_id', $participantId, PDO::PARAM_INT);
+        $statement->bindValue(':current_datetime', $currentDateTime, PDO::PARAM_STR);
+        $statement->execute();
+
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $statement->fetchAll();
+
+        return $rows;
+    }
+
+    /**
      * Returns distinct voter counts per voted team.
      *
      * @return array<int, array<string, mixed>>

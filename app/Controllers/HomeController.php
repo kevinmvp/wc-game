@@ -49,7 +49,7 @@ class HomeController extends BaseController
             $tomorrow
         );
 
-        $allUpcomingMatches = [];
+        $allUpcomingMatchesById = [];
         $todayMatchesRaw = $matchModel->allByDate($today);
         $tomorrowMatchesRaw = $matchModel->allByDate($tomorrow);
 
@@ -59,29 +59,43 @@ class HomeController extends BaseController
             $matchDateTime = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $matchDateTimeString, $appTimezone);
 
             if ($matchDateTime && $matchDateTime > $now) {
-                $allUpcomingMatches[] = $match;
+                $allUpcomingMatchesById[(int) ($match['id'] ?? 0)] = $match;
             }
         }
 
-        // Sort upcoming matches by date and time
+        $participant = null;
+        $todayVotes = [];
+        $pastVotedMatches = [];
+        $participantSession = $_SESSION['participant'] ?? null;
+        if (is_array($participantSession) && isset($participantSession['id'])) {
+            $participant = $participantSession;
+            $futureVotedMatches = $voteModel->futureVotedMatchesByParticipant(
+                (int) $participantSession['id'],
+                $now->format('Y-m-d H:i:s')
+            );
+            foreach ($futureVotedMatches as $match) {
+                $allUpcomingMatchesById[(int) ($match['id'] ?? 0)] = $match;
+            }
+
+            $pastVotedMatches = $voteModel->pastVotedMatchesByParticipant(
+                (int) $participantSession['id'],
+                $now->format('Y-m-d H:i:s')
+            );
+        }
+
+        $allUpcomingMatches = array_values($allUpcomingMatchesById);
         usort($allUpcomingMatches, static function ($a, $b) {
             $dateTimeA = (string) $a['match_date'] . ' ' . ((string) $a['local_time'] ?: '00:00:00');
             $dateTimeB = (string) $b['match_date'] . ' ' . ((string) $b['local_time'] ?: '00:00:00');
             return strtotime($dateTimeA) - strtotime($dateTimeB);
         });
 
-        $participant = null;
-        $todayVotes = []; // This will now include votes for today's *upcoming* matches
-        $pastVotedMatches = [];
-        $participantSession = $_SESSION['participant'] ?? null;
-        if (is_array($participantSession) && isset($participantSession['id'])) {
-            $participant = $participantSession;
-            // Fetch votes for today's matches, not necessarily upcoming ones, to cover votes already cast
-            $todayVotes = $voteModel->votesByParticipantOnDate((int) $participantSession['id'], $today);
-            $pastVotedMatches = $voteModel->pastVotedMatchesByParticipant(
-                (int) $participantSession['id'],
-                $now->format('Y-m-d H:i:s')
+        if ($participant !== null) {
+            $matchIds = array_map(
+                static fn (array $match): int => (int) ($match['id'] ?? 0),
+                $allUpcomingMatches
             );
+            $todayVotes = $voteModel->votesByParticipantForMatches((int) $participant['id'], $matchIds);
         }
 
         $this->render('home.index', [

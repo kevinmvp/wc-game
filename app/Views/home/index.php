@@ -163,7 +163,7 @@ $truncateTeamName = static function (string $team): string {
 
 <?php if ($participant !== null): ?>
     <section class="panel">
-        <h2>Your Past Votes</h2>
+        <h2>Your Vote Results</h2>
         <?php if ($pastVotedMatches === []): ?>
             <p class="muted">You have no past voted matches yet.</p>
         <?php else: ?>
