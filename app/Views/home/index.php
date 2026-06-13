@@ -232,7 +232,7 @@ $truncateTeamName = static function (string $team): string {
 <section class="panel">
     <h2>Votes By Matches</h2>
     <?php if ($matchVoteSummary === []): ?>
-        <p class="muted">No passed matches yet.</p>
+        <p class="muted">No passed or next-day matches found yet.</p>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-striped align-middle">

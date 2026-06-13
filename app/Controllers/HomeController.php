@@ -44,7 +44,10 @@ class HomeController extends BaseController
         $tomorrow = $now->modify('+1 day')->format('Y-m-d');
 
         $leaderboardRows = $leagueModel->leaderboard();
-        $matchVoteSummary = $voteModel->voteSummaryByPastMatches($now->format('Y-m-d H:i:s'));
+        $matchVoteSummary = $voteModel->voteSummaryByPastAndTomorrowMatches(
+            $now->format('Y-m-d H:i:s'),
+            $tomorrow
+        );
 
         $allUpcomingMatches = [];
         $todayMatchesRaw = $matchModel->allByDate($today);

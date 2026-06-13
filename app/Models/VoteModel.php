@@ -164,11 +164,11 @@ class VoteModel extends BaseModel
     }
 
     /**
-     * Returns vote counts by match for matches that have already kicked off.
+     * Returns vote counts by match for past matches and tomorrow's fixtures.
      *
      * @return array<int, array<string, mixed>>
      */
-    public function voteSummaryByPastMatches(string $currentDateTime): array
+    public function voteSummaryByPastAndTomorrowMatches(string $currentDateTime, string $tomorrowDate): array
     {
         $statement = $this->connection->prepare(
             'SELECT m.id,
@@ -184,11 +184,13 @@ class VoteModel extends BaseModel
                     COUNT(v.id) AS total_votes
              FROM league_matches m
              LEFT JOIN league_votes v ON v.match_id = m.id
-             WHERE CONCAT(m.match_date, " ", COALESCE(m.local_time, "00:00:00")) < :current_datetime
+                     WHERE CONCAT(m.match_date, " ", COALESCE(m.local_time, "00:00:00")) < :current_datetime
+                    OR m.match_date = :tomorrow_date
              GROUP BY m.id, m.match_date, m.local_time, m.stage, m.group_name, m.home_team, m.away_team
              ORDER BY m.match_date DESC, m.local_time DESC, m.id DESC'
         );
         $statement->bindValue(':current_datetime', $currentDateTime, PDO::PARAM_STR);
+                $statement->bindValue(':tomorrow_date', $tomorrowDate, PDO::PARAM_STR);
         $statement->execute();
 
         /** @var array<int, array<string, mixed>> $rows */
