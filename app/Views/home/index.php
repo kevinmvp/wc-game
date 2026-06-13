@@ -6,6 +6,7 @@ use App\Helpers\FlagHelper;
 /** @var string $today */
 /** @var string $tomorrow */
 /** @var array<int, array<string, mixed>> $leaderboardRows */
+/** @var array<int, array<string, mixed>> $matchVoteSummary */
 /** @var array<int, array<string, mixed>> $upcomingMatches */
 /** @var array<string, mixed>|null $participant */
 /** @var array<int, string> $todayVotes */
@@ -227,3 +228,68 @@ $truncateTeamName = static function (string $team): string {
         <?php endif; ?>
     </section>
 <?php endif; ?>
+
+<section class="panel">
+    <h2>Votes By Matches</h2>
+    <?php if ($matchVoteSummary === []): ?>
+        <p class="muted">No passed matches yet.</p>
+    <?php else: ?>
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Fixture</th>
+                    <th>Votes</th>
+                    <th style="min-width: 18rem;">Summary</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($matchVoteSummary as $summaryRow): ?>
+                    <?php
+                    $homeVotes = (int) ($summaryRow['home_votes'] ?? 0);
+                    $awayVotes = (int) ($summaryRow['away_votes'] ?? 0);
+                    $drawVotes = (int) ($summaryRow['draw_votes'] ?? 0);
+                    $totalVotes = max(0, (int) ($summaryRow['total_votes'] ?? 0));
+
+                    $homePercent = $totalVotes > 0 ? (int) round(($homeVotes / $totalVotes) * 100) : 0;
+                    $awayPercent = $totalVotes > 0 ? (int) round(($awayVotes / $totalVotes) * 100) : 0;
+                    $drawPercent = $totalVotes > 0 ? max(0, 100 - $homePercent - $awayPercent) : 0;
+                    ?>
+                    <tr>
+                        <td>
+                            <?= htmlspecialchars((string) ($summaryRow['match_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                            <?php if ((string) ($summaryRow['local_time'] ?? '') !== ''): ?>
+                                <br><span class="muted"><?= htmlspecialchars(substr((string) ($summaryRow['local_time'] ?? ''), 0, 5), ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?= FlagHelper::getFlag((string) ($summaryRow['home_team'] ?? '')); ?>
+                            <strong><?= htmlspecialchars((string) ($summaryRow['home_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
+                            vs
+                            <?= FlagHelper::getFlag((string) ($summaryRow['away_team'] ?? '')); ?>
+                            <strong><?= htmlspecialchars((string) ($summaryRow['away_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
+                            <?php if ((string) ($summaryRow['group_name'] ?? '') !== ''): ?>
+                                <br><span class="muted"><?= htmlspecialchars((string) ($summaryRow['group_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td><strong><?= $totalVotes; ?></strong></td>
+                        <td>
+                            <div class="progress mb-1" role="progressbar" aria-label="Vote summary" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                                <div class="progress-bar bg-success" style="width: <?= $homePercent; ?>%"></div>
+                                <div class="progress-bar bg-secondary" style="width: <?= $drawPercent; ?>%"></div>
+                                <div class="progress-bar bg-danger" style="width: <?= $awayPercent; ?>%"></div>
+                            </div>
+                            <small class="muted">
+                                <?= htmlspecialchars((string) ($summaryRow['home_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>: <?= $homeVotes; ?>
+                                | Draw: <?= $drawVotes; ?>
+                                | <?= htmlspecialchars((string) ($summaryRow['away_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>: <?= $awayVotes; ?>
+                            </small>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</section>

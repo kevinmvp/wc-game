@@ -131,4 +131,69 @@ class VoteModel extends BaseModel
 
         return $rows;
     }
+
+    /**
+     * Returns distinct voter counts per voted team.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function voteSummaryByTeam(): array
+    {
+        $statement = $this->connection->prepare(
+            'SELECT team_name, COUNT(DISTINCT participant_id) AS voter_count
+             FROM (
+                SELECT v.participant_id,
+                       CASE
+                           WHEN v.prediction = "home" THEN m.home_team
+                           WHEN v.prediction = "away" THEN m.away_team
+                           ELSE NULL
+                       END AS team_name
+                FROM league_votes v
+                INNER JOIN league_matches m ON m.id = v.match_id
+             ) AS team_votes
+             WHERE team_name IS NOT NULL AND team_name <> ""
+             GROUP BY team_name
+             ORDER BY voter_count DESC, team_name ASC'
+        );
+        $statement->execute();
+
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $statement->fetchAll();
+
+        return $rows;
+    }
+
+    /**
+     * Returns vote counts by match for matches that have already kicked off.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function voteSummaryByPastMatches(string $currentDateTime): array
+    {
+        $statement = $this->connection->prepare(
+            'SELECT m.id,
+                    m.match_date,
+                    m.local_time,
+                    m.stage,
+                    m.group_name,
+                    m.home_team,
+                    m.away_team,
+                    SUM(CASE WHEN v.prediction = "home" THEN 1 ELSE 0 END) AS home_votes,
+                    SUM(CASE WHEN v.prediction = "away" THEN 1 ELSE 0 END) AS away_votes,
+                    SUM(CASE WHEN v.prediction = "draw" THEN 1 ELSE 0 END) AS draw_votes,
+                    COUNT(v.id) AS total_votes
+             FROM league_matches m
+             LEFT JOIN league_votes v ON v.match_id = m.id
+             WHERE CONCAT(m.match_date, " ", COALESCE(m.local_time, "00:00:00")) < :current_datetime
+             GROUP BY m.id, m.match_date, m.local_time, m.stage, m.group_name, m.home_team, m.away_team
+             ORDER BY m.match_date DESC, m.local_time DESC, m.id DESC'
+        );
+        $statement->bindValue(':current_datetime', $currentDateTime, PDO::PARAM_STR);
+        $statement->execute();
+
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $statement->fetchAll();
+
+        return $rows;
+    }
 }

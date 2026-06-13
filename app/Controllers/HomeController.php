@@ -44,6 +44,7 @@ class HomeController extends BaseController
         $tomorrow = $now->modify('+1 day')->format('Y-m-d');
 
         $leaderboardRows = $leagueModel->leaderboard();
+        $matchVoteSummary = $voteModel->voteSummaryByPastMatches($now->format('Y-m-d H:i:s'));
 
         $allUpcomingMatches = [];
         $todayMatchesRaw = $matchModel->allByDate($today);
@@ -83,6 +84,7 @@ class HomeController extends BaseController
         $this->render('home.index', [
             'title' => 'RPC League',
             'leaderboardRows' => $leaderboardRows,
+            'matchVoteSummary' => $matchVoteSummary,
             'today' => $today,
             'upcomingMatches' => $allUpcomingMatches, // Changed from todayMatches to upcomingMatches
             'participant' => $participant,
