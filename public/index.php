@@ -29,6 +29,9 @@ spl_autoload_register(static function (string $className): void {
     $relativeClass = substr($className, strlen($prefix));
     $filePath = ROOT_PATH . '/app/' . str_replace('\\', '/', $relativeClass) . '.php';
 
+    // DEBUG: Log the path the autoloader is trying to load
+    error_log('Autoloader attempting to load: ' . $filePath);
+
     if (is_file($filePath)) {
         require_once $filePath;
     }
@@ -144,4 +147,5 @@ try {
     $errorController = new ErrorController($appConfig);
     $errorController->serverError($throwable);
 }
+
 
