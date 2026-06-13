@@ -1,5 +1,7 @@
 RewriteEngine On
+RewriteBase /worldcup/
 
+# Route all requests through the front controller when files/directories do not exist.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ public/index.php [QSA,L]
+RewriteRule ^(.*)$ index.php [QSA,L]
