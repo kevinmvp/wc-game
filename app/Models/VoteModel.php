@@ -224,16 +224,28 @@ class VoteModel extends BaseModel
     public function topPerformersForToday(string $todayDate): array
     {
         $statement = $this->connection->prepare(
-            'SELECT p.team_name,
-                    SUM(CASE WHEN v.prediction = m.result THEN 1 ELSE 0 END) AS score
-             FROM league_participants p
-             INNER JOIN league_votes v ON v.participant_id = p.id
-             INNER JOIN league_matches m ON m.id = v.match_id
-             WHERE m.match_date = :today_date AND m.result IS NOT NULL
-             GROUP BY p.id, p.team_name
-             ORDER BY score DESC, p.team_name ASC'
+            'SELECT team_name, score
+             FROM (
+                 SELECT p.team_name,
+                        SUM(CASE WHEN v.prediction = m.result THEN 1 ELSE 0 END) AS score
+                 FROM league_participants p
+                 INNER JOIN league_votes v ON v.participant_id = p.id
+                 INNER JOIN league_matches m ON m.id = v.match_id
+                 WHERE m.match_date = :today_date AND m.result IS NOT NULL
+                 GROUP BY p.id, p.team_name
+             ) AS scores
+             WHERE score = (SELECT MAX(max_score) FROM (
+                 SELECT SUM(CASE WHEN v2.prediction = m2.result THEN 1 ELSE 0 END) AS max_score
+                 FROM league_participants p2
+                 INNER JOIN league_votes v2 ON v2.participant_id = p2.id
+                 INNER JOIN league_matches m2 ON m2.id = v2.match_id
+                 WHERE m2.match_date = :today_date2 AND m2.result IS NOT NULL
+                 GROUP BY p2.id
+             ) AS max_scores)
+             ORDER BY team_name ASC'
         );
         $statement->bindValue(':today_date', $todayDate, PDO::PARAM_STR);
+        $statement->bindValue(':today_date2', $todayDate, PDO::PARAM_STR);
         $statement->execute();
 
         /** @var array<int, array<string, mixed>> $rows */
