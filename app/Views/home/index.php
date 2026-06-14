@@ -47,7 +47,7 @@ $truncateTeamName = static function (string $team): string {
             <tr>
                 <th>#</th>
                 <th>Team</th>
-                <th>Score</th>
+                <th>Points</th>
             </tr>
             </thead>
             <tbody>
