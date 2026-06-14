@@ -36,7 +36,7 @@ $truncateTeamName = static function (string $team): string {
 };
 ?>
 <section class="panel">
-    <h2>🏆 Top Performers Today</h2>
+    <h2>🏆 Top Performer(s) Today</h2>
     <p class="muted"><?= htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php if ($topPerformersToday === []): ?>
         <p class="muted">No results available yet for today.</p>
