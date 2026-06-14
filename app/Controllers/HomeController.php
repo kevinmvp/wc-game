@@ -44,6 +44,7 @@ class HomeController extends BaseController
         $tomorrow = $now->modify('+1 day')->format('Y-m-d');
 
         $leaderboardRows = $leagueModel->leaderboard();
+        $topPerformersToday = $voteModel->topPerformersForToday($today);
         $matchVoteSummary = $voteModel->voteSummaryByPastAndTomorrowMatches(
             $now->format('Y-m-d H:i:s'),
             $tomorrow
@@ -101,6 +102,7 @@ class HomeController extends BaseController
         $this->render('home.index', [
             'title' => 'RPC World Cup League',
             'leaderboardRows' => $leaderboardRows,
+            'topPerformersToday' => $topPerformersToday,
             'matchVoteSummary' => $matchVoteSummary,
             'today' => $today,
             'upcomingMatches' => $allUpcomingMatches, // Changed from todayMatches to upcomingMatches

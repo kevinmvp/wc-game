@@ -217,6 +217,32 @@ class VoteModel extends BaseModel
     }
 
     /**
+     * Returns top performers for today based on correct votes.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function topPerformersForToday(string $todayDate): array
+    {
+        $statement = $this->connection->prepare(
+            'SELECT p.team_name,
+                    SUM(CASE WHEN v.prediction = m.result THEN 1 ELSE 0 END) AS score
+             FROM league_participants p
+             INNER JOIN league_votes v ON v.participant_id = p.id
+             INNER JOIN league_matches m ON m.id = v.match_id
+             WHERE m.match_date = :today_date AND m.result IS NOT NULL
+             GROUP BY p.id, p.team_name
+             ORDER BY score DESC, p.team_name ASC'
+        );
+        $statement->bindValue(':today_date', $todayDate, PDO::PARAM_STR);
+        $statement->execute();
+
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $statement->fetchAll();
+
+        return $rows;
+    }
+
+    /**
      * Returns vote counts by match for past matches and tomorrow's fixtures.
      *
      * @return array<int, array<string, mixed>>

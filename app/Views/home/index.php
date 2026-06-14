@@ -6,6 +6,7 @@ use App\Helpers\FlagHelper;
 /** @var string $today */
 /** @var string $tomorrow */
 /** @var array<int, array<string, mixed>> $leaderboardRows */
+/** @var array<int, array<string, mixed>> $topPerformersToday */
 /** @var array<int, array<string, mixed>> $matchVoteSummary */
 /** @var array<int, array<string, mixed>> $upcomingMatches */
 /** @var array<string, mixed>|null $participant */
@@ -34,6 +35,35 @@ $truncateTeamName = static function (string $team): string {
     return strlen($team) > 20 ? substr($team, 0, 20) . '...' : $team;
 };
 ?>
+<section class="panel">
+    <h2>🏆 Top Performers Today</h2>
+    <p class="muted"><?= htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php if ($topPerformersToday === []): ?>
+        <p class="muted">No results available yet for today.</p>
+    <?php else: ?>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Team</th>
+                <th>Score</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($topPerformersToday as $index => $row): ?>
+                <tr>
+                    <td><?= $index + 1; ?></td>
+                    <td><strong><?= htmlspecialchars((string) ($row['team_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
+                    <td><strong><?= (int) ($row['score'] ?? 0); ?></strong></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</section>
+
 <!--section class="panel">
     <h1>RPC League</h1>
     <p><a class="btn btn-success" href="<?= htmlspecialchars($url('league/join'), ENT_QUOTES, 'UTF-8'); ?>">Register to Join the League</a></p>
