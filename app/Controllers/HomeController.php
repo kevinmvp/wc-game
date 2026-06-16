@@ -52,6 +52,7 @@ class HomeController extends BaseController
 
         $allUpcomingMatchesById = [];
         $todayMatchesRaw = $matchModel->allByDate($today);
+        $todayMatches = $todayMatchesRaw;
         $tomorrowMatchesRaw = $matchModel->allByDate($tomorrow);
 
         // Filter out matches that have already started
@@ -105,7 +106,8 @@ class HomeController extends BaseController
             'topPerformersToday' => $topPerformersToday,
             'matchVoteSummary' => $matchVoteSummary,
             'today' => $today,
-            'upcomingMatches' => $allUpcomingMatches, // Changed from todayMatches to upcomingMatches
+            'todayMatches' => $todayMatches,
+            'upcomingMatches' => $allUpcomingMatches,
             'participant' => $participant,
             'todayVotes' => $todayVotes,
             'pastVotedMatches' => $pastVotedMatches,

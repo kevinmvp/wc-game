@@ -13,6 +13,7 @@ use App\Helpers\FlagHelper;
 /** @var array<int, string> $todayVotes */
 /** @var array<int, array<string, mixed>> $pastVotedMatches */
 /** @var array<int, string> $allowedPredictions */
+/** @var array<int, array<string, mixed>> $todayMatches */
 
 $buildPredictionLabel = static function (string $prediction, array $match): string {
     if ($prediction === 'home') {
@@ -38,30 +39,90 @@ $truncateTeamName = static function (string $team): string {
 <section class="panel">
     <h2>🏆 Top Performer(s) Today</h2>
     <p class="muted"><?= htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?></p>
-    <?php if ($topPerformersToday === []): ?>
-        <p class="muted">No results available yet for today.</p>
-    <?php else: ?>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle">
-            <thead>
-            <tr>
-                <th>#</th>
-                <th>Team</th>
-                <th>Points</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($topPerformersToday as $index => $row): ?>
-                <tr>
-                    <td><?= $index + 1; ?></td>
-                    <td><strong><?= htmlspecialchars((string) ($row['team_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
-                    <td><strong><?= (int) ($row['score'] ?? 0); ?></strong></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-            </table>
+    <div class="row g-3 g-md-4">
+        <!-- Left Column: Top Performers -->
+        <div class="col-12 col-md-5">
+            <?php if ($topPerformersToday === []): ?>
+                <p class="muted">No results available yet for today.</p>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Team</th>
+                        <th class="text-end">Pts</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($topPerformersToday as $index => $row): ?>
+                        <tr>
+                            <td><?= $index + 1; ?></td>
+                            <td><strong><?= htmlspecialchars((string) ($row['team_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
+                            <td class="text-end"><strong><?= (int) ($row['score'] ?? 0); ?></strong></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
         </div>
-    <?php endif; ?>
+
+        <!-- Right Column: Today's Results -->
+        <div class="col-12 col-md-7">
+            <h5>Today's Results</h5>
+            <?php if ($todayMatches === []): ?>
+                <p class="muted">No matches scheduled for today.</p>
+            <?php else: ?>
+                <div class="today-results-list">
+                    <?php foreach ($todayMatches as $match): ?>
+                        <?php
+                        $homeTeam = (string) ($match['home_team'] ?? '');
+                        $awayTeam = (string) ($match['away_team'] ?? '');
+                        $homeScore = $match['home_score'] ?? null;
+                        $awayScore = $match['away_score'] ?? null;
+                        $localTime = (string) ($match['local_time'] ?? '');
+                        $matchResult = (string) ($match['result'] ?? '');
+                        $hasScore = $homeScore !== null && $awayScore !== null;
+                        ?>
+                        <div class="today-result-item">
+                            <div class="today-result-teams">
+                                <span class="today-result-team today-result-team--home">
+                                    <?= FlagHelper::getFlag($homeTeam); ?>
+                                    <span class="today-result-team-name"><?= htmlspecialchars($homeTeam, ENT_QUOTES, 'UTF-8'); ?></span>
+                                </span>
+                                <span class="today-result-score">
+                                    <?php if ($hasScore): ?>
+                                        <strong><?= (int) $homeScore; ?> - <?= (int) $awayScore; ?></strong>
+                                    <?php else: ?>
+                                        <span class="muted">
+                                            <?php if ($localTime !== ''): ?>
+                                                <?= htmlspecialchars(substr($localTime, 0, 5), ENT_QUOTES, 'UTF-8'); ?>
+                                            <?php else: ?>
+                                                TBC
+                                            <?php endif; ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </span>
+                                <span class="today-result-team today-result-team--away">
+                                    <span class="today-result-team-name"><?= htmlspecialchars($awayTeam, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?= FlagHelper::getFlag($awayTeam); ?>
+                                </span>
+                            </div>
+                            <?php if ((string) ($match['stage'] ?? '') !== ''): ?>
+                                <div class="today-result-meta">
+                                    <?= htmlspecialchars((string) ($match['stage'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                    <?php if ((string) ($match['group_name'] ?? '') !== ''): ?>
+                                        · <?= htmlspecialchars((string) ($match['group_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
 </section>
 
 <!--section class="panel">

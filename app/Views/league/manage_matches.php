@@ -55,7 +55,7 @@ $resultLabels = [
                 <th>Time</th>
                 <th>Home</th>
                 <th>Away</th>
-                <th>Venue</th>
+                <!--<th>Venue</th>-->
                 <th>Score</th>
                 <th>Result</th>
                 <th>Update</th>
@@ -86,10 +86,10 @@ $resultLabels = [
                     <td>
                         <input class="form-control form-control-sm" form="<?= htmlspecialchars($formId, ENT_QUOTES, 'UTF-8'); ?>" name="away_team" type="text" value="<?= htmlspecialchars((string) $match['away_team'], ENT_QUOTES, 'UTF-8'); ?>" required>
                     </td>
-                    <td>
+                    <!--td>
                         <input class="form-control form-control-sm mb-1" form="<?= htmlspecialchars($formId, ENT_QUOTES, 'UTF-8'); ?>" name="venue" type="text" placeholder="Venue" value="<?= htmlspecialchars((string) ($match['venue'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                         <input class="form-control form-control-sm" form="<?= htmlspecialchars($formId, ENT_QUOTES, 'UTF-8'); ?>" name="venue_city" type="text" placeholder="City" value="<?= htmlspecialchars((string) ($match['venue_city'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                    </td>
+                    </td-->
                     <td class="text-nowrap">
                             <span class="d-block mb-1"><?= htmlspecialchars($scoreline, ENT_QUOTES, 'UTF-8'); ?></span>
                             <div class="d-flex align-items-center gap-1">

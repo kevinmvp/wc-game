@@ -237,6 +237,92 @@ $isActive = static function (string $path) use ($requestPath): bool {
             font-size: 0.95rem;
         }
 
+        .today-results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border: 1px solid #e8eeea;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        [data-bs-theme="dark"] .today-results-list {
+            border-color: #2a3a32;
+        }
+
+        .today-result-item {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid #e8eeea;
+        }
+
+        [data-bs-theme="dark"] .today-result-item {
+            border-bottom-color: #2a3a32;
+        }
+
+        .today-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .today-result-teams {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+        }
+
+        .today-result-team {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .today-result-team--home {
+            justify-content: flex-start;
+            text-align: left;
+        }
+
+        .today-result-team--away {
+            justify-content: flex-end;
+            text-align: right;
+        }
+
+        .today-result-team-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 140px;
+        }
+
+        .today-result-score {
+            font-size: 0.95rem;
+            padding: 0.15rem 0.5rem;
+            background: #f3f7ef;
+            border-radius: 0.35rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 3.2rem;
+            text-align: center;
+        }
+
+        [data-bs-theme="dark"] .today-result-score {
+            background: #1e2b23;
+        }
+
+        .today-result-meta {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 0.2rem;
+            padding-left: 0.1rem;
+        }
+
+        [data-bs-theme="dark"] .today-result-meta {
+            color: #9db1a5;
+        }
+
         @media (max-width: 768px) {
             .panel {
                 padding: 1rem;
@@ -245,6 +331,40 @@ $isActive = static function (string $path) use ($requestPath): bool {
             .inline-form {
                 display: grid;
                 width: 100%;
+            }
+
+            .today-result-team-name {
+                max-width: 80px;
+            }
+
+            .today-result-teams {
+                gap: 0.3rem;
+            }
+
+            .today-result-team {
+                font-size: 0.82rem;
+            }
+
+            .today-result-score {
+                font-size: 0.85rem;
+                padding: 0.1rem 0.4rem;
+                min-width: 2.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .today-result-team-name {
+                max-width: 56px;
+            }
+
+            .today-result-team {
+                font-size: 0.78rem;
+                gap: 0.2rem;
+            }
+
+            .today-result-score {
+                font-size: 0.8rem;
+                min-width: 2.5rem;
             }
         }
     </style>
