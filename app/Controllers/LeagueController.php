@@ -179,9 +179,9 @@ class LeagueController extends BaseController
         $today = $now->format('Y-m-d');
         $tomorrow = $now->modify('+1 day')->format('Y-m-d');
         $currentTime = $now->format('H:i:s');
-        $viewMode = trim((string) ($_GET['view'] ?? 'table'));
+        $viewMode = trim((string) ($_GET['view'] ?? 'grid'));
         if (!in_array($viewMode, ['table', 'grid'], true)) {
-            $viewMode = 'table';
+            $viewMode = 'grid';
         }
 
         $matchModel = new MatchModel($this->databaseConfig);
@@ -364,8 +364,8 @@ class LeagueController extends BaseController
 
         $submittedVotes = $_POST['predictions'] ?? [];
         if (!is_array($submittedVotes) || $submittedVotes === []) {
-            $viewMode = trim((string) ($_POST['view'] ?? 'table'));
-            $viewMode = in_array($viewMode, ['table', 'grid'], true) ? $viewMode : 'table';
+            $viewMode = trim((string) ($_POST['view'] ?? 'grid'));
+            $viewMode = in_array($viewMode, ['table', 'grid'], true) ? $viewMode : 'grid';
             $this->redirect('/league/daily?view=' . $viewMode);
         }
 
@@ -417,8 +417,8 @@ class LeagueController extends BaseController
             $voteModel->saveVote((int) $participant['id'], $matchId, $prediction);
         }
 
-        $viewMode = trim((string) ($_POST['view'] ?? 'table'));
-        $viewMode = in_array($viewMode, ['table', 'grid'], true) ? $viewMode : 'table';
+        $viewMode = trim((string) ($_POST['view'] ?? 'grid'));
+        $viewMode = in_array($viewMode, ['table', 'grid'], true) ? $viewMode : 'grid';
         $this->redirect('/league/daily?view=' . $viewMode);
     }
 

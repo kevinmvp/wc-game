@@ -42,7 +42,7 @@ $buildPredictionLabel = static function (string $prediction, array $match, calla
 
 $timezone = new DateTimeZone((string) ($appConfig['timezone'] ?? date_default_timezone_get()));
 $currentTime = new DateTimeImmutable('now', $timezone);
-$viewMode = in_array($viewMode ?? 'table', ['table', 'grid'], true) ? $viewMode : 'table';
+$viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode : 'grid';
 ?>
 
 <section class="panel">
