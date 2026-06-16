@@ -164,7 +164,24 @@ $truncateTeamName = static function (string $team): string {
 </section>
 
 <section class="panel">
-    <h2>Upcoming Fixtures</h2>
+    <h2>Upcoming Fixtures
+    <?php if ($participant !== null && $upcomingMatches !== []): ?>
+        <?php
+        $totalUpcoming = count($upcomingMatches);
+        $votedCount = 0;
+        foreach ($upcomingMatches as $um) {
+            $umId = (int) ($um['id'] ?? 0);
+            if (($todayVotes[$umId] ?? '') !== '') {
+                $votedCount++;
+            }
+        }
+        $hasPending = $votedCount < $totalUpcoming;
+        ?>
+        <?php if ($hasPending): ?>
+            <span class="badge text-bg-danger" style="font-size: 0.6em; vertical-align: middle;">Pending votes</span>
+        <?php endif; ?>
+    <?php endif; ?>
+    </h2>
     <!--p class="muted">Date: <?= htmlspecialchars($today ?? '', ENT_QUOTES, 'UTF-8'); ?> - <?= htmlspecialchars($tomorrow ?? '', ENT_QUOTES, 'UTF-8'); ?></p-->
     <?php if ($participant === null): ?>
         <p class="muted">Only registered users can vote. <a href="<?= htmlspecialchars($url('league/join'), ENT_QUOTES, 'UTF-8'); ?>">Register now</a>.</p>
@@ -221,22 +238,18 @@ $truncateTeamName = static function (string $team): string {
                     <td>
                         <?php if ($participant === null): ?>
                             <span class="muted">Register to vote or <a href="<?= htmlspecialchars($url('league/login'), ENT_QUOTES, 'UTF-8'); ?>">login here</a></span>
-                        <?php else: ?>
-                            <select class="form-select form-select-sm" disabled>
-                                <option value="" <?= $currentVote === '' ? 'selected' : ''; ?>>Choose</option>
-                                <?php foreach ($allowedPredictions as $prediction): ?>
-                                    <?php
-                                    $predictionLabel = match ($prediction) {
-                                        'home' => FlagHelper::getFlag((string) ($match['home_team'] ?? '')) . ' ' . $truncateTeamName((string) ($match['home_team'] ?? '')) . ' to win',
-                                        'away' => FlagHelper::getFlag((string) ($match['away_team'] ?? '')) . ' ' . $truncateTeamName((string) ($match['away_team'] ?? '')) . ' to win',
-                                        default => 'Draw',
-                                    };
-                                    ?>
-                                    <option value="<?= htmlspecialchars($prediction, ENT_QUOTES, 'UTF-8'); ?>" <?= $prediction === $currentVote ? 'selected' : ''; ?>>
-                                        <?= htmlspecialchars($predictionLabel, ENT_QUOTES, 'UTF-8'); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                        <?php elseif ($currentVote === 'home'): ?>
+                            <span class="vote-indicator vote-indicator--active">
+                                <?= FlagHelper::getFlag((string) ($match['home_team'] ?? '')); ?>
+                                <?= htmlspecialchars((string) ($match['home_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                            </span>
+                        <?php elseif ($currentVote === 'away'): ?>
+                            <span class="vote-indicator vote-indicator--active">
+                                <?= FlagHelper::getFlag((string) ($match['away_team'] ?? '')); ?>
+                                <?= htmlspecialchars((string) ($match['away_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                            </span>
+                        <?php elseif ($currentVote === 'draw'): ?>
+                            <span class="vote-indicator vote-indicator--active">Draw</span>
                         <?php endif; ?>
                     </td>
                 </tr>

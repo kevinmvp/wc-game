@@ -191,6 +191,19 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                             <?php endif; ?>
                         </td>
                         <td class="text-nowrap">
+                            <?php if ($currentVote === 'home'): ?>
+                                <span class="vote-indicator vote-indicator--active">
+                                    <?= FlagHelper::getFlag((string) ($match['home_team'] ?? '')); ?>
+                                    <?= htmlspecialchars((string) ($match['home_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                </span>
+                            <?php elseif ($currentVote === 'away'): ?>
+                                <span class="vote-indicator vote-indicator--active">
+                                    <?= FlagHelper::getFlag((string) ($match['away_team'] ?? '')); ?>
+                                    <?= htmlspecialchars((string) ($match['away_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                </span>
+                            <?php elseif ($currentVote === 'draw'): ?>
+                                <span class="vote-indicator vote-indicator--active">Draw</span>
+                            <?php else: ?>
                                 <select class="form-select form-select-sm" name="predictions[<?= $matchId; ?>]" <?= $isDisabled; ?>>
                                     <option value="">Choose</option>
                                     <?php foreach ($allowedPredictions as $prediction): ?>
@@ -202,6 +215,7 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
