@@ -11,6 +11,11 @@ use App\Helpers\FlagHelper;
 /** @var int $points */
 /** @var array<int, string> $allowedPredictions */
 /** @var string $viewMode */
+/** @var bool $bonusEligible */
+/** @var bool $bonusEnabled */
+/** @var int $bonusPointsPerGuess */
+/** @var int $bonusPositionThreshold */
+/** @var array<int, array<string, mixed>> $scorelineGuesses */
 
 $predictionLabels = [
     'home' => 'Home Win',
@@ -53,6 +58,12 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
         (<?= htmlspecialchars((string) $participant['team_name'], ENT_QUOTES, 'UTF-8'); ?>)
     </p>
     <p><strong>Total Points:</strong> <?= $points; ?></p>
+    <?php if ($bonusEnabled && $bonusEligible): ?>
+        <p class="muted">
+            <span class="badge bg-success">Scoreline Bonus Active</span>
+            You can earn <?= $bonusPointsPerGuess; ?> extra points per correct scoreline guess!
+        </p>
+    <?php endif; ?>
 </section>
 
 <section class="panel">
@@ -94,6 +105,8 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
 
                 $isMatchPast = ($kickoff !== false && $currentTime >= $kickoff);
                 $isDisabled = $isMatchPast ? 'disabled' : '';
+                $existingScoreline = $scorelineGuesses[$matchId] ?? null;
+                $showScoreline = $bonusEnabled && $bonusEligible && !$isMatchPast;
                 ?>
                 <article class="fixture-card">
                     <p><strong><?= htmlspecialchars((string) (($match['group_name'] ?? '') !== '' ? ($match['group_name'] ?? '') : ($match['stage'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong></p>
@@ -124,11 +137,30 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                    <?php if ($showScoreline): ?>
+                        <div class="scoreline-guess border-top pt-2 mt-2">
+                            <p class="muted mb-1"><small>Scoreline Guess (+<?= $bonusPointsPerGuess; ?> pts)</small></p>
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="number" class="form-control form-control-sm" style="max-width: 55px;"
+                                       name="scorelines[<?= $matchId; ?>][home]" min="0" max="99" step="1" placeholder="H"
+                                       value="<?= $existingScoreline !== null ? htmlspecialchars((string) ($existingScoreline['home_score'] ?? ''), ENT_QUOTES, 'UTF-8') : ''; ?>">
+                                <span class="fw-bold">:</span>
+                                <input type="number" class="form-control form-control-sm" style="max-width: 55px;"
+                                       name="scorelines[<?= $matchId; ?>][away]" min="0" max="99" step="1" placeholder="A"
+                                       value="<?= $existingScoreline !== null ? htmlspecialchars((string) ($existingScoreline['away_score'] ?? ''), ENT_QUOTES, 'UTF-8') : ''; ?>">
+                                <?php if ($existingScoreline !== null): ?>
+                                    <span class="badge bg-info ms-1">
+                                        <?= (int) ($existingScoreline['home_score'] ?? 0); ?>-<?= (int) ($existingScoreline['away_score'] ?? 0); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </article>
             <?php endforeach; ?>
         </div>
         <div class="d-flex justify-content-end mt-3">
-            <button class="btn btn-success" type="submit">Save All Votes</button>
+            <button class="btn btn-success" type="submit">Save All Votes &amp; Scorelines</button>
         </div>
     <?php else: ?>
         <?php $currentDate = null; ?>
@@ -141,6 +173,9 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                     <th>Fixture</th>
                     <th>Venue</th>
                     <th>Your Vote</th>
+                    <?php if ($bonusEnabled && $bonusEligible): ?>
+                        <th>Scoreline Guess</th>
+                    <?php endif; ?>
                 </tr>
                 </thead>
                 <tbody>
@@ -152,7 +187,7 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                         $currentDate = $matchDate;
                         ?>
                         <tr>
-                            <td class="table-date-divider" colspan="5"><?= htmlspecialchars($currentDate, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="table-date-divider" colspan="<?= $bonusEnabled && $bonusEligible ? '6' : '5'; ?>"><?= htmlspecialchars($currentDate, ENT_QUOTES, 'UTF-8'); ?></td>
                         </tr>
                     <?php } ?>
 
@@ -168,6 +203,8 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
 
                     $isMatchPast = ($kickoff !== false && $currentTime >= $kickoff);
                     $isDisabled = $isMatchPast ? 'disabled' : '';
+                    $existingScoreline = $scorelineGuesses[$matchId] ?? null;
+                    $showScoreline = $bonusEnabled && $bonusEligible && !$isMatchPast;
                     ?>
                     <tr>
                         <td><?= htmlspecialchars($localTime !== '' ? substr($localTime, 0, 5) : 'TBC', ENT_QUOTES, 'UTF-8'); ?></td>
@@ -217,13 +254,31 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                                 </select>
                             <?php endif; ?>
                         </td>
+                        <?php if ($showScoreline): ?>
+                            <td class="text-nowrap" style="min-width: 130px;">
+                                <div class="d-flex align-items-center gap-1">
+                                    <input type="number" class="form-control form-control-sm" style="max-width: 50px;"
+                                           name="scorelines[<?= $matchId; ?>][home]" min="0" max="99" step="1" placeholder="H"
+                                           value="<?= $existingScoreline !== null ? htmlspecialchars((string) ($existingScoreline['home_score'] ?? ''), ENT_QUOTES, 'UTF-8') : ''; ?>">
+                                    <span class="fw-bold">:</span>
+                                    <input type="number" class="form-control form-control-sm" style="max-width: 50px;"
+                                           name="scorelines[<?= $matchId; ?>][away]" min="0" max="99" step="1" placeholder="A"
+                                           value="<?= $existingScoreline !== null ? htmlspecialchars((string) ($existingScoreline['away_score'] ?? ''), ENT_QUOTES, 'UTF-8') : ''; ?>">
+                                </div>
+                                <?php if ($existingScoreline !== null): ?>
+                                    <small class="muted">Current: <?= (int) ($existingScoreline['home_score'] ?? 0); ?>-<?= (int) ($existingScoreline['away_score'] ?? 0); ?></small>
+                                <?php endif; ?>
+                            </td>
+                        <?php elseif ($bonusEnabled && $bonusEligible): ?>
+                            <td class="text-muted"><small>Match started</small></td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
         <div class="d-flex justify-content-end mt-3">
-            <button class="btn btn-success" type="submit">Save All Votes</button>
+            <button class="btn btn-success" type="submit">Save All Votes &amp; Scorelines</button>
         </div>
     <?php endif; ?>
     </form>

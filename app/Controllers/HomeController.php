@@ -6,6 +6,7 @@ namespace App\Controllers;
 use App\Models\HealthCheckModel;
 use App\Models\LeagueModel;
 use App\Models\MatchModel;
+use App\Models\SettingsModel;
 use App\Models\VoteModel;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -36,6 +37,7 @@ class HomeController extends BaseController
         $leagueModel = new LeagueModel($this->databaseConfig);
         $matchModel = new MatchModel($this->databaseConfig);
         $voteModel = new VoteModel($this->databaseConfig);
+        $settingsModel = new SettingsModel($this->databaseConfig);
 
         $appTimezone = new DateTimeZone((string) ($this->appConfig['timezone'] ?? 'UTC'));
         $now = new DateTimeImmutable('now', $appTimezone);
@@ -43,8 +45,12 @@ class HomeController extends BaseController
         $today = $now->format('Y-m-d');
         $tomorrow = $now->modify('+1 day')->format('Y-m-d');
 
-        $leaderboardRows = $leagueModel->leaderboard();
-        $topPerformersToday = $voteModel->topPerformersForToday($today);
+        $bonusEnabled = (bool) $settingsModel->getInt('bonus_enabled', 1);
+        $bonusPointsPerGuess = $settingsModel->getInt('bonus_points_per_guess', 5);
+        $bonusPositionThreshold = $settingsModel->getInt('bonus_position_threshold', 6);
+
+        $leaderboardRows = $leagueModel->leaderboard(false, $bonusPointsPerGuess);
+        $topPerformersToday = $voteModel->topPerformersForToday($today, $bonusPointsPerGuess);
         $matchVoteSummary = $voteModel->voteSummaryByPastAndTomorrowMatches(
             $now->format('Y-m-d H:i:s'),
             $tomorrow
@@ -113,6 +119,9 @@ class HomeController extends BaseController
             'pastVotedMatches' => $pastVotedMatches,
             'allowedPredictions' => MatchModel::allowedResults(),
             'hideAppBrand' => true,
+            'bonusEnabled' => $bonusEnabled,
+            'bonusPointsPerGuess' => $bonusPointsPerGuess,
+            'bonusPositionThreshold' => $bonusPositionThreshold,
         ]);
     }
 

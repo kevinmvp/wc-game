@@ -172,7 +172,7 @@ class VoteModel extends BaseModel
              FROM league_votes v
              INNER JOIN league_matches m ON m.id = v.match_id
              WHERE v.participant_id = :participant_id
-                             AND CONCAT(m.match_date, " ", COALESCE(m.local_time, "00:00:00")) > :current_datetime
+               AND CONCAT(m.match_date, " ", COALESCE(m.local_time, "00:00:00")) > :current_datetime
              ORDER BY m.match_date ASC, m.local_time ASC, m.id ASC'
         );
         $statement->bindValue(':participant_id', $participantId, PDO::PARAM_INT);
@@ -217,33 +217,42 @@ class VoteModel extends BaseModel
     }
 
     /**
-     * Returns top performers for today based on correct votes.
+     * Returns top performers for today based on correct votes and scoreline guesses.
      *
      * @return array<int, array<string, mixed>>
      */
-    public function topPerformersForToday(string $todayDate): array
+    public function topPerformersForToday(string $todayDate, int $bonusPointsPerGuess = 5): array
     {
         $statement = $this->connection->prepare(
-            'SELECT team_name, score
+            'SELECT team_name, prediction_points, bonus_points, total_score
              FROM (
-                 SELECT p.team_name,
-                        SUM(CASE WHEN v.prediction = m.result THEN 1 ELSE 0 END) AS score
+                  SELECT p.team_name,
+                         SUM(CASE WHEN v.prediction = m.result THEN 1 ELSE 0 END) AS prediction_points,
+                         SUM(CASE WHEN sg.is_correct = 1 THEN :bonus_pts1 ELSE 0 END) AS bonus_points,
+                         SUM(CASE WHEN v.prediction = m.result THEN 1 ELSE 0 END)
+                         + SUM(CASE WHEN sg.is_correct = 1 THEN :bonus_pts3 ELSE 0 END) AS total_score
                  FROM league_participants p
                  INNER JOIN league_votes v ON v.participant_id = p.id
                  INNER JOIN league_matches m ON m.id = v.match_id
+                 LEFT JOIN league_scoreline_guesses sg ON sg.participant_id = p.id AND sg.match_id = m.id
                  WHERE m.match_date = :today_date AND m.result IS NOT NULL
                  GROUP BY p.id, p.team_name
              ) AS scores
-             WHERE score = (SELECT MAX(max_score) FROM (
-                 SELECT SUM(CASE WHEN v2.prediction = m2.result THEN 1 ELSE 0 END) AS max_score
+             WHERE total_score = (SELECT MAX(max_total) FROM (
+                 SELECT SUM(CASE WHEN v2.prediction = m2.result THEN 1 ELSE 0 END)
+                  + SUM(CASE WHEN sg2.is_correct = 1 THEN :bonus_pts4 ELSE 0 END) AS max_total
                  FROM league_participants p2
                  INNER JOIN league_votes v2 ON v2.participant_id = p2.id
                  INNER JOIN league_matches m2 ON m2.id = v2.match_id
+                 LEFT JOIN league_scoreline_guesses sg2 ON sg2.participant_id = p2.id AND sg2.match_id = m2.id
                  WHERE m2.match_date = :today_date2 AND m2.result IS NOT NULL
                  GROUP BY p2.id
              ) AS max_scores)
              ORDER BY team_name ASC'
         );
+        $statement->bindValue(':bonus_pts1', $bonusPointsPerGuess, PDO::PARAM_INT);
+        $statement->bindValue(':bonus_pts3', $bonusPointsPerGuess, PDO::PARAM_INT);
+        $statement->bindValue(':bonus_pts4', $bonusPointsPerGuess, PDO::PARAM_INT);
         $statement->bindValue(':today_date', $todayDate, PDO::PARAM_STR);
         $statement->bindValue(':today_date2', $todayDate, PDO::PARAM_STR);
         $statement->execute();
@@ -275,13 +284,13 @@ class VoteModel extends BaseModel
                     COUNT(v.id) AS total_votes
              FROM league_matches m
              LEFT JOIN league_votes v ON v.match_id = m.id
-                     WHERE CONCAT(m.match_date, " ", COALESCE(m.local_time, "00:00:00")) < :current_datetime
-                    OR m.match_date = :tomorrow_date
+               WHERE CONCAT(m.match_date, " ", COALESCE(m.local_time, "00:00:00")) < :current_datetime
+                  OR m.match_date = :tomorrow_date
              GROUP BY m.id, m.match_date, m.local_time, m.stage, m.group_name, m.home_team, m.away_team
              ORDER BY m.match_date DESC, m.local_time DESC, m.id DESC'
         );
         $statement->bindValue(':current_datetime', $currentDateTime, PDO::PARAM_STR);
-                $statement->bindValue(':tomorrow_date', $tomorrowDate, PDO::PARAM_STR);
+        $statement->bindValue(':tomorrow_date', $tomorrowDate, PDO::PARAM_STR);
         $statement->execute();
 
         /** @var array<int, array<string, mixed>> $rows */

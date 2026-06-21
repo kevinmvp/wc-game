@@ -6,6 +6,8 @@ namespace App\Controllers;
 use App\Models\LeagueModel;
 use App\Models\MatchModel;
 use App\Models\ParticipantModel;
+use App\Models\ScorelineGuessModel;
+use App\Models\SettingsModel;
 use App\Models\VoteModel;
 
 /**
@@ -187,6 +189,7 @@ class LeagueController extends BaseController
         $matchModel = new MatchModel($this->databaseConfig);
         $voteModel = new VoteModel($this->databaseConfig);
         $leagueModel = new LeagueModel($this->databaseConfig);
+        $settingsModel = new SettingsModel($this->databaseConfig);
 
         $todayMatches = $matchModel->allByDate($today, $currentTime);
         $tomorrowMatches = $matchModel->allByDate($tomorrow);
@@ -199,6 +202,24 @@ class LeagueController extends BaseController
         $votes = $voteModel->votesByParticipantForMatches((int) $participant['id'], $matchIds);
         $points = $leagueModel->pointsForParticipant((int) $participant['id']);
 
+        // Bonus scoreline eligibility
+        $bonusEnabled = (bool) $settingsModel->getInt('bonus_enabled', 1);
+        $bonusPointsPerGuess = $settingsModel->getInt('bonus_points_per_guess', 5);
+        $bonusPositionThreshold = $settingsModel->getInt('bonus_position_threshold', 6);
+
+        $bonusEligible = false;
+        $scorelineGuesses = [];
+        if ($bonusEnabled) {
+            $participantId = (int) $participant['id'];
+            $rank = $leagueModel->participantRank($participantId, $bonusPointsPerGuess);
+            $bonusEligible = ($rank === 0 || $rank >= $bonusPositionThreshold);
+
+            if ($bonusEligible) {
+                $guessModel = new ScorelineGuessModel($this->databaseConfig);
+                $scorelineGuesses = $guessModel->guessesByParticipant($participantId);
+            }
+        }
+
         $this->render('league.daily', [
             'title' => 'Daily Matches',
             'today' => $today,
@@ -209,6 +230,11 @@ class LeagueController extends BaseController
             'points' => $points,
             'viewMode' => $viewMode,
             'allowedPredictions' => MatchModel::allowedResults(),
+            'bonusEligible' => $bonusEligible,
+            'bonusEnabled' => $bonusEnabled,
+            'bonusPointsPerGuess' => $bonusPointsPerGuess,
+            'bonusPositionThreshold' => $bonusPositionThreshold,
+            'scorelineGuesses' => $scorelineGuesses,
         ]);
     }
 
@@ -353,6 +379,7 @@ class LeagueController extends BaseController
 
     /**
      * Stores many participant votes submitted from the daily page.
+     * Also processes scoreline guesses for eligible participants.
      */
     public function submitVotesBulk(): void
     {
@@ -362,27 +389,291 @@ class LeagueController extends BaseController
             $this->redirect('/league/daily');
         }
 
-        $submittedVotes = $_POST['predictions'] ?? [];
-        if (!is_array($submittedVotes) || $submittedVotes === []) {
-            $viewMode = trim((string) ($_POST['view'] ?? 'grid'));
-            $viewMode = in_array($viewMode, ['table', 'grid'], true) ? $viewMode : 'grid';
-            $this->redirect('/league/daily?view=' . $viewMode);
-        }
-
         $timezone = new \DateTimeZone((string) ($this->appConfig['timezone'] ?? date_default_timezone_get()));
         $now = new \DateTimeImmutable('now', $timezone);
         $matchModel = new MatchModel($this->databaseConfig);
         $voteModel = new VoteModel($this->databaseConfig);
         $allowedResults = MatchModel::allowedResults();
 
-        foreach ($submittedVotes as $rawMatchId => $rawPrediction) {
+        // Process votes (predictions)
+        $submittedVotes = $_POST['predictions'] ?? [];
+        if (is_array($submittedVotes)) {
+            foreach ($submittedVotes as $rawMatchId => $rawPrediction) {
+                $matchId = (int) $rawMatchId;
+                if ($matchId <= 0) {
+                    continue;
+                }
+
+                $prediction = trim((string) $rawPrediction);
+                if (!in_array($prediction, $allowedResults, true)) {
+                    continue;
+                }
+
+                $match = $matchModel->findById($matchId);
+                if ($match === null) {
+                    continue;
+                }
+
+                $matchDate = (string) ($match['match_date'] ?? '');
+                if ($matchDate === '') {
+                    continue;
+                }
+
+                $localTime = (string) ($match['local_time'] ?? '');
+                if ($localTime !== '') {
+                    $timeValue = strlen($localTime) === 5 ? ($localTime . ':00') : $localTime;
+                    $kickoff = \DateTimeImmutable::createFromFormat(
+                        'Y-m-d H:i:s',
+                        $matchDate . ' ' . $timeValue,
+                        $timezone
+                    );
+
+                    if ($kickoff !== false && $now >= $kickoff) {
+                        continue;
+                    }
+                }
+
+                if ((string) ($match['result'] ?? '') !== '') {
+                    continue;
+                }
+
+                $voteModel->saveVote((int) $participant['id'], $matchId, $prediction);
+            }
+        }
+
+        // Process scoreline guesses for eligible participants
+        $submittedScorelines = $_POST['scorelines'] ?? [];
+        if (is_array($submittedScorelines) && $submittedScorelines !== []) {
+            $settingsModel = new SettingsModel($this->databaseConfig);
+            $leagueModel = new LeagueModel($this->databaseConfig);
+
+            $bonusEnabled = (bool) $settingsModel->getInt('bonus_enabled', 1);
+            $bonusPointsPerGuess = $settingsModel->getInt('bonus_points_per_guess', 5);
+            $bonusPositionThreshold = $settingsModel->getInt('bonus_position_threshold', 6);
+
+            if ($bonusEnabled) {
+                $participantId = (int) $participant['id'];
+                $rank = $leagueModel->participantRank($participantId, $bonusPointsPerGuess);
+                $isEligible = ($rank === 0 || $rank >= $bonusPositionThreshold);
+
+                if ($isEligible) {
+                    $guessModel = new ScorelineGuessModel($this->databaseConfig);
+
+                    foreach ($submittedScorelines as $rawMatchId => $scoreline) {
+                        $matchId = (int) $rawMatchId;
+                        if ($matchId <= 0) {
+                            continue;
+                        }
+
+                        if (!is_array($scoreline)) {
+                            continue;
+                        }
+
+                        $homeScore = trim((string) ($scoreline['home'] ?? ''));
+                        $awayScore = trim((string) ($scoreline['away'] ?? ''));
+
+                        if ($homeScore === '' || $awayScore === '') {
+                            continue;
+                        }
+
+                        if (!ctype_digit($homeScore) || !ctype_digit($awayScore)) {
+                            continue;
+                        }
+
+                        $homeScoreInt = (int) $homeScore;
+                        $awayScoreInt = (int) $awayScore;
+
+                        if ($homeScoreInt > 99 || $awayScoreInt > 99) {
+                            continue;
+                        }
+
+                        $match = $matchModel->findById($matchId);
+                        if ($match === null) {
+                            continue;
+                        }
+
+                        $matchDate = (string) ($match['match_date'] ?? '');
+                        $localTime = (string) ($match['local_time'] ?? '');
+
+                        if ((string) ($match['result'] ?? '') !== '') {
+                            continue;
+                        }
+
+                        if ($localTime !== '') {
+                            $timeValue = strlen($localTime) === 5 ? ($localTime . ':00') : $localTime;
+                            $kickoff = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $matchDate . ' ' . $timeValue, $timezone);
+                            if ($kickoff !== false && $now >= $kickoff) {
+                                continue;
+                            }
+                        }
+
+                        $guessModel->saveGuess($participantId, $matchId, $homeScoreInt, $awayScoreInt);
+                    }
+                }
+            }
+        }
+
+        $viewMode = trim((string) ($_POST['view'] ?? 'grid'));
+        $viewMode = in_array($viewMode, ['table', 'grid'], true) ? $viewMode : 'grid';
+        $this->redirect('/league/daily?view=' . $viewMode);
+    }
+
+    /**
+     * Renders global participant rankings by points (includes bonus).
+     */
+    public function leaderboard(): void
+    {
+        $settingsModel = new SettingsModel($this->databaseConfig);
+        $leagueModel = new LeagueModel($this->databaseConfig);
+        $canViewMobile = (($_SESSION['league_admin_authenticated'] ?? false) === true);
+        $bonusEnabled = (bool) $settingsModel->getInt('bonus_enabled', 1);
+        $bonusPointsPerGuess = $settingsModel->getInt('bonus_points_per_guess', 5);
+        $bonusPositionThreshold = $settingsModel->getInt('bonus_position_threshold', 6);
+
+        $this->render('league.leaderboard', [
+            'title' => 'Leaderboard',
+            'rows' => $leagueModel->leaderboard($canViewMobile, $bonusPointsPerGuess),
+            'canViewMobile' => $canViewMobile,
+            'bonusEnabled' => $bonusEnabled,
+            'bonusPointsPerGuess' => $bonusPointsPerGuess,
+            'bonusPositionThreshold' => $bonusPositionThreshold,
+        ]);
+    }
+
+    /**
+     * Displays the scoreline guess page for eligible users (below threshold position).
+     */
+    public function scorelineGuesses(): void
+    {
+        $participant = $this->requireParticipant();
+
+        $settingsModel = new SettingsModel($this->databaseConfig);
+        $leagueModel = new LeagueModel($this->databaseConfig);
+        $matchModel = new MatchModel($this->databaseConfig);
+        $guessModel = new ScorelineGuessModel($this->databaseConfig);
+
+        $bonusEnabled = (bool) $settingsModel->getInt('bonus_enabled', 1);
+        $bonusPointsPerGuess = $settingsModel->getInt('bonus_points_per_guess', 5);
+        $bonusPositionThreshold = $settingsModel->getInt('bonus_position_threshold', 6);
+
+        if (!$bonusEnabled) {
+            $this->redirect('/');
+        }
+
+        $participantId = (int) $participant['id'];
+        $rank = $leagueModel->participantRank($participantId, $bonusPointsPerGuess);
+
+        // User is eligible if rank is at or below threshold (or rank == 0 meaning not ranked yet)
+        $isEligible = ($rank === 0 || $rank >= $bonusPositionThreshold);
+
+        // Get all matches that have not been played yet (no scoreline/results)
+        $allMatches = $matchModel->allOrdered();
+        $timezone = new \DateTimeZone((string) ($this->appConfig['timezone'] ?? date_default_timezone_get()));
+        $now = new \DateTimeImmutable('now', $timezone);
+
+        $upcomingMatches = [];
+        foreach ($allMatches as $match) {
+            $matchDate = (string) ($match['match_date'] ?? '');
+            $localTime = (string) ($match['local_time'] ?? '');
+
+            // Skip matches that already have results/scorelines
+            if ((string) ($match['result'] ?? '') !== '') {
+                continue;
+            }
+
+            // Skip matches that have already kicked off
+            if ($localTime !== '') {
+                $timeValue = strlen($localTime) === 5 ? ($localTime . ':00') : $localTime;
+                $kickoff = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $matchDate . ' ' . $timeValue, $timezone);
+                if ($kickoff !== false && $now >= $kickoff) {
+                    continue;
+                }
+            }
+
+            $upcomingMatches[] = $match;
+        }
+
+        $existingGuesses = $guessModel->guessesByParticipant($participantId);
+
+        $this->render('league.scoreline_guesses', [
+            'title' => 'Scoreline Guesses',
+            'participant' => $participant,
+            'matches' => $upcomingMatches,
+            'existingGuesses' => $existingGuesses,
+            'isEligible' => $isEligible,
+            'rank' => $rank,
+            'bonusEnabled' => $bonusEnabled,
+            'bonusPointsPerGuess' => $bonusPointsPerGuess,
+            'bonusPositionThreshold' => $bonusPositionThreshold,
+        ]);
+    }
+
+    /**
+     * Saves scoreline guesses submitted by an eligible participant.
+     */
+    public function submitScorelineGuesses(): void
+    {
+        $participant = $this->requireParticipant();
+
+        if (!$this->verifyCsrfToken((string) ($_POST['_csrf'] ?? ''))) {
+            $this->redirect('/league/scoreline-guesses');
+        }
+
+        $settingsModel = new SettingsModel($this->databaseConfig);
+        $leagueModel = new LeagueModel($this->databaseConfig);
+
+        $bonusEnabled = (bool) $settingsModel->getInt('bonus_enabled', 1);
+        $bonusPointsPerGuess = $settingsModel->getInt('bonus_points_per_guess', 5);
+        $bonusPositionThreshold = $settingsModel->getInt('bonus_position_threshold', 6);
+
+        if (!$bonusEnabled) {
+            $this->redirect('/');
+        }
+
+        $participantId = (int) $participant['id'];
+        $rank = $leagueModel->participantRank($participantId, $bonusPointsPerGuess);
+
+        $isEligible = ($rank === 0 || $rank >= $bonusPositionThreshold);
+        if (!$isEligible) {
+            $this->redirect('/league/scoreline-guesses');
+        }
+
+        $submittedGuesses = $_POST['scorelines'] ?? [];
+        if (!is_array($submittedGuesses) || $submittedGuesses === []) {
+            $this->redirect('/league/scoreline-guesses');
+        }
+
+        $matchModel = new MatchModel($this->databaseConfig);
+        $guessModel = new ScorelineGuessModel($this->databaseConfig);
+
+        $timezone = new \DateTimeZone((string) ($this->appConfig['timezone'] ?? date_default_timezone_get()));
+        $now = new \DateTimeImmutable('now', $timezone);
+
+        foreach ($submittedGuesses as $rawMatchId => $scoreline) {
             $matchId = (int) $rawMatchId;
             if ($matchId <= 0) {
                 continue;
             }
 
-            $prediction = trim((string) $rawPrediction);
-            if (!in_array($prediction, $allowedResults, true)) {
+            if (!is_array($scoreline)) {
+                continue;
+            }
+
+            $homeScore = trim((string) ($scoreline['home'] ?? ''));
+            $awayScore = trim((string) ($scoreline['away'] ?? ''));
+
+            if ($homeScore === '' || $awayScore === '') {
+                continue;
+            }
+
+            if (!ctype_digit($homeScore) || !ctype_digit($awayScore)) {
+                continue;
+            }
+
+            $homeScoreInt = (int) $homeScore;
+            $awayScoreInt = (int) $awayScore;
+
+            if ($homeScoreInt > 99 || $awayScoreInt > 99) {
                 continue;
             }
 
@@ -392,49 +683,96 @@ class LeagueController extends BaseController
             }
 
             $matchDate = (string) ($match['match_date'] ?? '');
-            if ($matchDate === '') {
+            $localTime = (string) ($match['local_time'] ?? '');
+
+            // Skip matches that already have results
+            if ((string) ($match['result'] ?? '') !== '') {
                 continue;
             }
 
-            $localTime = (string) ($match['local_time'] ?? '');
+            // Skip matches that have already kicked off
             if ($localTime !== '') {
                 $timeValue = strlen($localTime) === 5 ? ($localTime . ':00') : $localTime;
-                $kickoff = \DateTimeImmutable::createFromFormat(
-                    'Y-m-d H:i:s',
-                    $matchDate . ' ' . $timeValue,
-                    $timezone
-                );
-
+                $kickoff = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $matchDate . ' ' . $timeValue, $timezone);
                 if ($kickoff !== false && $now >= $kickoff) {
                     continue;
                 }
             }
 
-            if ((string) ($match['result'] ?? '') !== '') {
-                continue;
-            }
-
-            $voteModel->saveVote((int) $participant['id'], $matchId, $prediction);
+            $guessModel->saveGuess($participantId, $matchId, $homeScoreInt, $awayScoreInt);
         }
 
-        $viewMode = trim((string) ($_POST['view'] ?? 'grid'));
-        $viewMode = in_array($viewMode, ['table', 'grid'], true) ? $viewMode : 'grid';
-        $this->redirect('/league/daily?view=' . $viewMode);
+        $this->redirect('/league/scoreline-guesses');
     }
 
     /**
-     * Renders global participant rankings by points.
+     * Admin panel for configuring bonus settings.
      */
-    public function leaderboard(): void
+    public function bonusSettingsForm(): void
     {
-        $leagueModel = new LeagueModel($this->databaseConfig);
-        $canViewMobile = (($_SESSION['league_admin_authenticated'] ?? false) === true);
+        $this->requireLeagueAdmin();
 
-        $this->render('league.leaderboard', [
-            'title' => 'Leaderboard',
-            'rows' => $leagueModel->leaderboard($canViewMobile),
-            'canViewMobile' => $canViewMobile,
+        $settingsModel = new SettingsModel($this->databaseConfig);
+        $settings = $settingsModel->all();
+
+        $this->render('league.bonus_settings', [
+            'title' => 'Bonus Settings',
+            'errors' => [],
+            'settings' => $settings,
         ]);
+    }
+
+    /**
+     * Saves updated bonus settings.
+     */
+    public function bonusSettingsSubmit(): void
+    {
+        $this->requireLeagueAdmin();
+
+        if (!$this->verifyCsrfToken((string) ($_POST['_csrf'] ?? ''))) {
+            $this->render('league.bonus_settings', [
+                'title' => 'Bonus Settings',
+                'errors' => ['Security token is invalid or expired.'],
+                'settings' => (new SettingsModel($this->databaseConfig))->all(),
+            ], 422);
+
+            return;
+        }
+
+        $bonusEnabled = trim((string) ($_POST['bonus_enabled'] ?? ''));
+        $bonusPositionThreshold = trim((string) ($_POST['bonus_position_threshold'] ?? ''));
+        $bonusPointsPerGuess = trim((string) ($_POST['bonus_points_per_guess'] ?? ''));
+
+        $errors = [];
+
+        if (!in_array($bonusEnabled, ['0', '1'], true)) {
+            $errors[] = 'Bonus enabled must be 0 or 1.';
+        }
+
+        if ($bonusPositionThreshold === '' || !ctype_digit($bonusPositionThreshold) || (int) $bonusPositionThreshold < 1) {
+            $errors[] = 'Position threshold must be a positive number.';
+        }
+
+        if ($bonusPointsPerGuess === '' || !ctype_digit($bonusPointsPerGuess) || (int) $bonusPointsPerGuess < 1) {
+            $errors[] = 'Points per guess must be a positive number.';
+        }
+
+        if ($errors !== []) {
+            $this->render('league.bonus_settings', [
+                'title' => 'Bonus Settings',
+                'errors' => $errors,
+                'settings' => (new SettingsModel($this->databaseConfig))->all(),
+            ], 422);
+
+            return;
+        }
+
+        $settingsModel = new SettingsModel($this->databaseConfig);
+        $settingsModel->set('bonus_enabled', $bonusEnabled);
+        $settingsModel->set('bonus_position_threshold', $bonusPositionThreshold);
+        $settingsModel->set('bonus_points_per_guess', $bonusPointsPerGuess);
+
+        $this->redirect('/league/bonus-settings');
     }
 
     /**
@@ -797,6 +1135,12 @@ class LeagueController extends BaseController
             $awayScore,
             $result
         );
+
+        // Evaluate scoreline guesses for this match if scores are set
+        if ($homeScore !== null && $awayScore !== null) {
+            $guessModel = new ScorelineGuessModel($this->databaseConfig);
+            $guessModel->evaluateGuessesForMatch((int) $matchId);
+        }
 
         $this->redirect('/league/manage-matches');
     }

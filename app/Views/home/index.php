@@ -59,7 +59,12 @@ $truncateTeamName = static function (string $team): string {
                         <tr>
                             <td><?= $index + 1; ?></td>
                             <td><strong><?= htmlspecialchars((string) ($row['team_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
-                            <td class="text-end"><strong><?= (int) ($row['score'] ?? 0); ?></strong></td>
+                            <td class="text-end">
+                                <strong><?= (int) ($row['total_score'] ?? $row['score'] ?? 0); ?></strong>
+                                <?php if ($bonusEnabled && ((int) ($row['bonus_points'] ?? 0) > 0)): ?>
+                                    <br><small class="muted"><?= (int) ($row['prediction_points'] ?? 0); ?> pred + <?= (int) ($row['bonus_points'] ?? 0); ?> bonus</small>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

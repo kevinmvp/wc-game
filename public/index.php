@@ -117,6 +117,10 @@ $router->post('/league/matches', [LeagueController::class, 'createMatch']);
 $router->post('/league/matches/{id}/details', [LeagueController::class, 'updateMatchDetails']);
 $router->post('/league/manage-votes/{participantId}', [LeagueController::class, 'updateVotesForParticipant']);
 $router->post('/league/knockout-import', [LeagueController::class, 'knockoutImportSubmit']);
+$router->get('/league/scoreline-guesses', [LeagueController::class, 'scorelineGuesses']);
+$router->post('/league/scoreline-guesses', [LeagueController::class, 'submitScorelineGuesses']);
+$router->get('/league/bonus-settings', [LeagueController::class, 'bonusSettingsForm']);
+$router->post('/league/bonus-settings', [LeagueController::class, 'bonusSettingsSubmit']);
 $router->post('/league/matches/{id}/result', [LeagueController::class, 'setResult']);
 $router->get('/league/logout', [LeagueController::class, 'logoutParticipant']);
 
