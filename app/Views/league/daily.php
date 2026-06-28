@@ -125,6 +125,7 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                     <?php if ((string) ($match['venue_city'] ?? '') !== ''): ?>
                         <p class="muted"><?= htmlspecialchars((string) ($match['venue_city'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
                     <?php endif; ?>
+                    <p><strong>*Vote only for FINAL RESULT Win</strong></p>
                     <p><strong>Current Vote:</strong> <?= htmlspecialchars((string) ($predictionLabels[$currentVote] ?? 'No vote yet'), ENT_QUOTES, 'UTF-8'); ?></p>
                         <select class="form-select mb-2" name="predictions[<?= $matchId; ?>]" <?= $isDisabled; ?>>
                             <option value="">Choose</option>
@@ -132,6 +133,10 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                                 <?php
                                 $predictionLabel = $buildPredictionLabel((string) $prediction, $match, $truncateTeamName);
                                 ?>
+                                <?php if ($prediction === 'draw'): ?>
+                                    <!-- Draw option is intentionally hidden in the grid view -->
+                                    <?php continue; ?>
+                                <?php endif; ?>
                                 <option value="<?= htmlspecialchars($prediction, ENT_QUOTES, 'UTF-8'); ?>" <?= $prediction === $currentVote ? 'selected' : ''; ?>>
                                     <?= htmlspecialchars($predictionLabel, ENT_QUOTES, 'UTF-8'); ?>
                                 </option>
@@ -139,7 +144,7 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                         </select>
                     <?php if ($showScoreline): ?>
                         <div class="scoreline-guess border-top pt-2 mt-2">
-                            <p class="muted mb-1"><small>Scoreline Guess (+<?= $bonusPointsPerGuess; ?> pts)</small></p>
+                            <p class="muted mb-1"><small>Scoreline Guess excluding penalties (+<?= $bonusPointsPerGuess; ?> pts)</small></p>
                             <div class="d-flex align-items-center gap-1">
                                 <input type="number" class="form-control form-control-sm" style="max-width: 55px;"
                                        name="scorelines[<?= $matchId; ?>][home]" min="0" max="99" step="1" placeholder="H"
