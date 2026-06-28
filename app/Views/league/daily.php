@@ -144,7 +144,7 @@ $viewMode = in_array($viewMode ?? 'grid', ['table', 'grid'], true) ? $viewMode :
                         </select>
                     <?php if ($showScoreline): ?>
                         <div class="scoreline-guess border-top pt-2 mt-2">
-                            <p class="muted mb-1"><small>Scoreline Guess excluding penalties (+<?= $bonusPointsPerGuess; ?> pts)</small></p>
+                            <p class="muted mb-1"><small>Scoreline Guess includes Extra Time but exclude penalties (+<?= $bonusPointsPerGuess; ?> pts)</small></p>
                             <div class="d-flex align-items-center gap-1">
                                 <input type="number" class="form-control form-control-sm" style="max-width: 55px;"
                                        name="scorelines[<?= $matchId; ?>][home]" min="0" max="99" step="1" placeholder="H"
