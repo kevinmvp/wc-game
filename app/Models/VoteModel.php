@@ -129,9 +129,13 @@ class VoteModel extends BaseModel
                     m.home_score,
                     m.away_score,
                     m.result,
-                    v.prediction
+                          v.prediction,
+                          sg.home_score AS your_home_score,
+                          sg.away_score AS your_away_score,
+                          sg.is_correct AS scoreline_is_correct
              FROM league_votes v
              INNER JOIN league_matches m ON m.id = v.match_id
+                      LEFT JOIN league_scoreline_guesses sg ON sg.participant_id = v.participant_id AND sg.match_id = v.match_id
              WHERE v.participant_id = :participant_id
                AND CONCAT(m.match_date, " ", COALESCE(m.local_time, "00:00:00")) < :current_datetime
              ORDER BY m.match_date DESC, m.local_time DESC, m.id DESC'

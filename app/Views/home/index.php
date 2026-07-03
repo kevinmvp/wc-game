@@ -285,6 +285,7 @@ $truncateTeamName = static function (string $team): string {
                         <th>Stage</th>
                         <th>Fixture</th>
                         <th>Scoreline</th>
+                        <th>Your Scoreline</th>
                         <th>Your Vote</th>
                         <th>Result</th>
                         <th>Status</th>
@@ -297,9 +298,21 @@ $truncateTeamName = static function (string $team): string {
                         $result = (string) ($match['result'] ?? '');
                         $homeScore = $match['home_score'] ?? null;
                         $awayScore = $match['away_score'] ?? null;
+                        $yourHomeScore = $match['your_home_score'] ?? null;
+                        $yourAwayScore = $match['your_away_score'] ?? null;
+                        $scorelineIsCorrect = $match['scoreline_is_correct'] ?? null;
                         $scoreline = ($homeScore !== null && $awayScore !== null)
                             ? ((string) $homeScore . ' - ' . (string) $awayScore)
                             : '-';
+                        $yourScoreline = ($yourHomeScore !== null && $yourAwayScore !== null)
+                            ? ((string) $yourHomeScore . ' - ' . (string) $yourAwayScore)
+                            : '-';
+                        $yourScorelineClass = 'muted';
+                        if ($scorelineIsCorrect === 1 || $scorelineIsCorrect === '1') {
+                            $yourScorelineClass = 'text-success fw-semibold';
+                        } elseif ($scorelineIsCorrect === 0 || $scorelineIsCorrect === '0') {
+                            $yourScorelineClass = 'text-danger fw-semibold';
+                        }
                         $statusLabel = 'Pending';
                         $statusClass = 'text-bg-secondary';
 
@@ -333,6 +346,7 @@ $truncateTeamName = static function (string $team): string {
                                 <strong><?= htmlspecialchars((string) ($match['away_team'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
                             </td>
                             <td><?= htmlspecialchars($scoreline, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><span class="<?= htmlspecialchars($yourScorelineClass, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($yourScoreline, ENT_QUOTES, 'UTF-8'); ?></span></td>
                             <td><?= htmlspecialchars($prediction !== '' ? $buildPredictionLabel($prediction, $match) : 'N/A', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?= htmlspecialchars($result !== '' ? $buildPredictionLabel($result, $match) : 'Pending', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><span class="badge <?= htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
